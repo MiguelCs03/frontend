@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, lazy, Suspense } from 'react'
-import { Search, User, Calendar, Phone, Mail, MapPin, Heart, Plus } from 'lucide-react'
+
+import { Search, User, Calendar, Phone, Mail, MapPin, Heart, Plus, UserPlus } from 'lucide-react'
 import AddConsultationForm from './components/add-consultation-form'
+import RegisterPatientForm from './components/register-patient-form'
 
 // Lazy loading del componente de historial médico
 const MedicalHistory = lazy(() => import('./components/medical-history'))
@@ -104,6 +106,7 @@ export default function PatientsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showAddConsultation, setShowAddConsultation] = useState(false)
+  const [showRegisterPatient, setShowRegisterPatient] = useState(false)
 
   // Simular búsqueda en base de datos
   const searchPatient = async () => {
@@ -139,7 +142,16 @@ export default function PatientsPage() {
     <div className="space-y-6">
       {/* Header de búsqueda */}
       <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-gray-700">
-        <h1 className="text-3xl font-bold text-white mb-4">Registro de Pacientes</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold text-white">Registro de Pacientes</h1>
+          <button
+            onClick={() => setShowRegisterPatient(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+          >
+            <UserPlus className="h-4 w-4" />
+            Registrar Paciente
+          </button>
+        </div>
         
         {/* Buscador */}
         <div className="flex gap-4 items-center">
@@ -305,6 +317,17 @@ export default function PatientsPage() {
           patientId={patient.id}
           patientName={patient.nombre}
           onClose={() => setShowAddConsultation(false)}
+        />
+      )}
+
+      {/* Modal de Registro de Paciente */}
+      {showRegisterPatient && (
+        <RegisterPatientForm
+          onClose={() => setShowRegisterPatient(false)}
+          onPatientRegistered={(newPatient) => {
+            // Aquí podrías actualizar la lista de pacientes o realizar alguna acción adicional
+            console.log('✅ Paciente registrado desde el dashboard:', newPatient)
+          }}
         />
       )}
     </div>

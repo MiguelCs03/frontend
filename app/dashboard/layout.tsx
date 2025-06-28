@@ -14,6 +14,7 @@ import {
   Zap,
   Briefcase,
   UserPlus,
+  MapPin,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +43,7 @@ export default function DashboardLayout({
     { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard" },
     { id: "projects", label: "Projects", icon: Briefcase, href: "/dashboard/projects" },
     { id: "patients", label: "Patients", icon: UserPlus, href: "/dashboard/patients" },
+    { id: "heatmap", label: "Mapa de Calor", icon: MapPin, href: "/dashboard/heatmap" },
     { id: "onboarding", label: "Onboarding", icon: CheckCircle, href: "/dashboard/onboarding" },
     { id: "services", label: "Services", icon: Zap, href: "/dashboard/services" },
     { id: "team", label: "Team", icon: Users, href: "/dashboard/team" },
@@ -92,37 +94,39 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <nav className="space-y-2">
-              {navigationItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavigation(item.href)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-                    pathname === item.href
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                      : "text-gray-400 hover:text-white hover:bg-gray-800"
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
+      <div className="flex">
+        <div className="w-full px-6 py-8">
+          <div className="flex">
+            {/* Sidebar */}
+            <div className="w-64 flex-shrink-0 mr-8">
+              <nav className="space-y-2 sticky top-8">
+                {navigationItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigation(item.href)}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
+                      pathname === item.href
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        : "text-gray-400 hover:text-white hover:bg-gray-800"
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {children}
-            </motion.div>
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {children}
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>
