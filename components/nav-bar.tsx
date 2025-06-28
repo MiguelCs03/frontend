@@ -7,14 +7,11 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { Menu, X, Monitor, Handshake } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { LanguageSelector } from "@/components/language-selector"
-import { useLanguage } from "@/contexts/language-context"
 
 export function NavBar() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
-  const { t } = useLanguage()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,9 +23,9 @@ export function NavBar() {
 
   const navItems = [
     { name: "Services", href: "/services" },
-    { name: t("nav.projects"), href: "/projects" },
-    { name: t("nav.process"), href: "/process" },
-    { name: t("nav.support"), href: "/support" },
+    { name: "Projects", href: "/projects" },
+    { name: "Process", href: "/process" },
+    { name: "Support", href: "/support" },
     { name: "Partnership", href: "/partnership", icon: <Handshake className="w-4 h-4" /> },
   ]
 
@@ -77,7 +74,6 @@ export function NavBar() {
 
           {/* Right side items */}
           <div className="hidden lg:flex items-center space-x-4">
-            <LanguageSelector />
             <Link
               href="/corporate-login"
               onClick={scrollToTop}
