@@ -5,7 +5,7 @@ import { MapPin, Activity, Eye, EyeOff, ChevronDown } from 'lucide-react'
 import HeatMapFallback from './components/heatmap-fallback'
 import GoogleMapsDiagnostic from './components/google-maps-diagnostic'
 import { hospitalesSantaCruz } from './data/hospitals-data'
-
+import { GoogleGenerativeAI } from "@google/generative-ai"
 // Enfermedades disponibles para el selector
 const availableDiseases = [
   { value: 'Dengue', label: 'Dengue' },
@@ -166,10 +166,10 @@ export default function HeatMapPage() {
         setError('Timeout: Google Maps no se pudo cargar correctamente')
         setIsLoading(false)
       }, 30000)
+
       
       return
     }
-
     // Cargar Google Maps API
     const script = document.createElement('script')
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=visualization&callback=initMap`
@@ -507,6 +507,39 @@ export default function HeatMapPage() {
     )
   }
 
+  // Función para probar la IA desde el botón
+  const handleTestIA = async () => {
+    console.log('🚀 Probando conexión con Gemini AI...');
+    const respuesta = await ia();
+    if (respuesta) {
+      console.log('🎉 ¡Conexión exitosa! Respuesta:', respuesta);
+    } else {
+      console.log('💥 Error en la conexión con Gemini AI');
+    }
+  }
+
+  // Función ia completa
+  const ia = async () => {
+    try {
+      const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_API_KEY_IA ?? "");
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const prompt = "Hola, ¿puedes responder con un mensaje simple para probar la conexión?";
+      
+      console.log('🤖 Enviando prompt a Gemini:', prompt);
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      console.log('✅ Respuesta de Gemini:', text);
+      return text;
+    } catch (error) {
+      console.error('❌ Error con Gemini AI:', error);
+      return null;
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -524,6 +557,14 @@ export default function HeatMapPage() {
           
           {/* Controles */}
           <div className="flex items-center gap-4">
+            {/* Botón Test IA */}
+            <button
+              onClick={handleTestIA}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors"
+            >
+              🤖 Test IA
+            </button>
+            
             {/* Botón Cargar Mapa - Solo se muestra si el mapa no está cargado */}
             {!isMapLoaded && (
               <button
