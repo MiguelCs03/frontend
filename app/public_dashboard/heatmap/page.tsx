@@ -46,8 +46,10 @@ export default function HeatMapPage() {
   const [selectedDisease, setSelectedDisease] = useState<string>('Dengue')
   const [apiData, setApiData] = useState<ApiConsultation[]>([])
   const [isHeatmapVisible, setIsHeatmapVisible] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // Cambiado a false
   const [error, setError] = useState<string | null>(null)
+  const [isMapLoaded, setIsMapLoaded] = useState(false) // Controla si el mapa está cargado
+  const [shouldLoadMap, setShouldLoadMap] = useState(false) // Controla cuándo cargar el mapa
 
   // Verificar si hay API key disponible
   const hasApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && 
@@ -145,6 +147,29 @@ export default function HeatMapPage() {
       return
     }
 
+    // Verificar si ya hay un script de Google Maps cargándose
+    const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`)
+    if (existingScript) {
+      console.log('Script de Google Maps ya existe, esperando a que cargue...')
+      
+      // Si ya existe un script, esperar a que termine de cargar
+      const checkGoogleMaps = setInterval(() => {
+        if (window.google && window.google.maps) {
+          clearInterval(checkGoogleMaps)
+          initializeMap()
+        }
+      }, 500)
+      
+      // Timeout para evitar espera infinita
+      setTimeout(() => {
+        clearInterval(checkGoogleMaps)
+        setError('Timeout: Google Maps no se pudo cargar correctamente')
+        setIsLoading(false)
+      }, 30000)
+      
+      return
+    }
+
     // Cargar Google Maps API
     const script = document.createElement('script')
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=visualization&callback=initMap`
@@ -158,7 +183,7 @@ export default function HeatMapPage() {
       console.error('Timeout: Google Maps tardó demasiado en cargar')
       setError('Timeout: Google Maps tardó demasiado en cargar. Verifique su conexión a internet.')
       setIsLoading(false)
-    }, 10000) // 10 segundos timeout
+    }, 30000) // 10 segundos timeout
 
     // Función global para inicializar el mapa
     window.initMap = () => {
@@ -413,6 +438,23 @@ export default function HeatMapPage() {
     // El useEffect se encargará de cargar los nuevos datos de la API
   }
 
+  // Función para cargar el mapa manualmente
+  const handleLoadMap = () => {
+    if (!hasApiKey) {
+      setError('No se puede cargar el mapa: API Key de Google Maps no configurada')
+      return
+    }
+    
+    if (isMapLoaded) {
+      setError('El mapa ya está cargado')
+      return
+    }
+    
+    console.log('🚀 Cargando mapa por solicitud del usuario...')
+    setError(null) // Limpiar errores previos
+    setShouldLoadMap(true)
+  }
+
   // Función auxiliar para actualizar el heatmap con datos de la API
   const updateHeatmapWithApiData = (heatmapLayer: any, apiData: ApiConsultation[]) => {
     try {
@@ -482,22 +524,46 @@ export default function HeatMapPage() {
           
           {/* Controles */}
           <div className="flex items-center gap-4">
-            <button
-              onClick={toggleHeatmap}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-            >
-              {isHeatmapVisible ? (
-                <>
-                  <EyeOff className="h-4 w-4" />
-                  Ocultar Calor
-                </>
-              ) : (
-                <>
-                  <Eye className="h-4 w-4" />
-                  Mostrar Calor
-                </>
-              )}
-            </button>
+            {/* Botón Cargar Mapa - Solo se muestra si el mapa no está cargado */}
+            {!isMapLoaded && (
+              <button
+                onClick={handleLoadMap}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin"></div>
+                    Cargando...
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="h-4 w-4" />
+                    Cargar Mapa
+                  </>
+                )}
+              </button>
+            )}
+            
+            {/* Botón toggle heatmap - Solo se muestra si el mapa está cargado */}
+            {isMapLoaded && (
+              <button
+                onClick={toggleHeatmap}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+              >
+                {isHeatmapVisible ? (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    Ocultar Calor
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    Mostrar Calor
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -527,14 +593,14 @@ export default function HeatMapPage() {
           
           <div className="text-right">
             <p className="text-xs text-gray-400">Enfermedad seleccionada</p>
-            <p className="text-sm font-medium text-white">{selectedDisease}</p>
+            <div className="text-sm font-medium text-white">{selectedDisease}</div>
             {isLoading ? (
-              <p className="text-xs text-blue-400 flex items-center gap-1">
+              <div className="text-xs text-blue-400 flex items-center gap-1">
                 <div className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                 Cargando datos...
-              </p>
+              </div>
             ) : (
-              <p className="text-xs text-gray-500">{totalCasos} casos registrados</p>
+              <div className="text-xs text-gray-500">{totalCasos} casos registrados</div>
             )}
           </div>
         </div>
