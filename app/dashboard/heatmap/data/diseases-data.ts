@@ -1,13 +1,5 @@
-// Datos mock de enfermedades típicas de Santa Cruz, Bolivia
-// Todos los datos son simulados para fines demostrativos
-
-export interface Paciente {
-  id: number
-  nombre: string
-  apellido: string
-  edad: number
-  sexo: 'M' | 'F'
-}
+// Datos de hospitales de Santa Cruz, Bolivia
+// Estos datos se mantienen para mostrar la lista de hospitales en la interfaz
 
 export interface Hospital {
   id: number

@@ -4,7 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { MapPin, Activity, Eye, EyeOff, ChevronDown } from 'lucide-react'
 import HeatMapFallback from './components/heatmap-fallback'
 import GoogleMapsDiagnostic from './components/google-maps-diagnostic'
-import { diseasesData, availableDiseases, hospitalesSantaCruz, type ConsultaMedica, type DiseaseData } from './data/diseases-data'
+import { hospitalesSantaCruz } from './data/hospitals-data'
+
+// Enfermedades disponibles para el selector
+const availableDiseases = [
+  { value: 'Dengue', label: 'Dengue' },
+  { value: 'Sarampión', label: 'Sarampión' },
+  { value: 'Zika', label: 'Zika' },
+  { value: 'Influenza', label: 'Influenza' },
+  { value: 'Gripe AH1N1', label: 'Gripe AH1N1' },
+  { value: 'Bronquitis', label: 'Bronquitis' }
+]
 
 // Tipo para los datos de la API
 interface ApiConsultation {
@@ -34,7 +44,6 @@ export default function HeatMapPage() {
   const [map, setMap] = useState<any>(null)
   const [heatmap, setHeatmap] = useState<any>(null)
   const [selectedDisease, setSelectedDisease] = useState<string>('Dengue')
-  const [selectedDiseaseData, setSelectedDiseaseData] = useState<DiseaseData>(diseasesData.dengue)
   const [apiData, setApiData] = useState<ApiConsultation[]>([])
   const [isHeatmapVisible, setIsHeatmapVisible] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
@@ -49,27 +58,78 @@ export default function HeatMapPage() {
   console.log('API Key válida:', hasApiKey)
 
   // Función para obtener datos de la API
-  const fetchDiseaseData = async (enfermedad: string) => {
+  const fetchDiseaseData = async (enfermedad: string): Promise<ApiConsultation[]> => {
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
-      console.log(`Intentando obtener datos de: ${apiBaseUrl}/api/v1/historial/enfermedad?enfermedad=${enfermedad}`)
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
       
-      const response = await fetch(`${apiBaseUrl}/api/v1/historial/enfermedad?enfermedad=${enfermedad}`)
-      
-      if (!response.ok) {
-        console.warn(`API no disponible (${response.status}), usando datos estáticos como fallback`)
-        // No establecer error, simplemente usar fallback
-        return selectedDiseaseData.consultations
+      if (!apiBaseUrl) {
+        console.error('API_BASE_URL no está configurada')
+        return []
       }
+
+      console.log(`🔍 Obteniendo datos de: ${apiBaseUrl}/api/v1/historial/enfermedad?enfermedad=${enfermedad}`)
       
+      const response = await fetch(`${apiBaseUrl}/api/v1/historial/enfermedad?enfermedad=${enfermedad}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000) // 10 segundos
+      })
+
+      if (!response.ok) {
+        console.error(`❌ Error HTTP: ${response.status} - ${response.statusText}`)
+        return []
+      }
+
       const data = await response.json()
-      console.log('Datos obtenidos de la API:', data)
-      setApiData(data)
-      return data
-    } catch (error) {
-      console.warn('API no disponible, usando datos estáticos como fallback:', error)
-      // No establecer error, simplemente usar fallback silenciosamente
-      return selectedDiseaseData.consultations
+      console.log(`📦 Datos recibidos para ${enfermedad}:`, data)
+      console.log(`📊 Tipo de datos:`, typeof data)
+      console.log(`📊 Es array:`, Array.isArray(data))
+      
+      // Manejar diferentes estructuras de respuesta
+      let consultations: ApiConsultation[] = []
+      
+      if (Array.isArray(data)) {
+        // Si la respuesta es directamente un array
+        consultations = data
+        console.log(`✅ Array directo: ${consultations.length} elementos`)
+      } else if (data && typeof data === 'object') {
+        // Si la respuesta es un objeto, buscar el array dentro
+        console.log(`🔍 Propiedades del objeto:`, Object.keys(data))
+        
+        if (Array.isArray(data.data)) {
+          consultations = data.data
+          console.log(`✅ Encontrado en data.data: ${consultations.length} elementos`)
+        } else if (Array.isArray(data.results)) {
+          consultations = data.results
+          console.log(`✅ Encontrado en data.results: ${consultations.length} elementos`)
+        } else if (Array.isArray(data.consultas)) {
+          consultations = data.consultas
+          console.log(`✅ Encontrado en data.consultas: ${consultations.length} elementos`)
+        } else if (Array.isArray(data.historial)) {
+          consultations = data.historial
+          console.log(`✅ Encontrado en data.historial: ${consultations.length} elementos`)
+        } else {
+          console.warn(`⚠️ No se encontró array en la respuesta para ${enfermedad}`)
+          consultations = []
+        }
+      } else {
+        console.error(`❌ Respuesta inválida para ${enfermedad}:`, data)
+        consultations = []
+      }
+
+      console.log(`📈 ${enfermedad}: ${consultations.length} consultas procesadas`)
+      setApiData(consultations)
+      return consultations
+
+    } catch (error: any) {
+      console.error(`❌ Error al obtener datos para ${enfermedad}:`, error.message)
+      if (error.name === 'TimeoutError') {
+        console.error('⏰ La petición tardó demasiado tiempo')
+      }
+      return []
     }
   }
 
@@ -143,13 +203,22 @@ export default function HeatMapPage() {
     if (map && heatmap) {
       const loadDataForDisease = async () => {
         try {
-          console.log('Cargando datos para enfermedad:', selectedDisease)
+          console.log('🔄 Cargando datos para enfermedad:', selectedDisease)
           const apiData = await fetchDiseaseData(selectedDisease)
+          
           if (apiData && apiData.length > 0) {
             updateHeatmapWithApiData(heatmap, apiData)
+            console.log(`✅ ${selectedDisease}: ${apiData.length} casos cargados exitosamente`)
+          } else {
+            console.warn(`⚠️ ${selectedDisease}: No se encontraron datos`)
+            // Limpiar el mapa si no hay datos
+            heatmap.setData([])
           }
         } catch (error) {
-          console.warn('Error loading data for disease:', error)
+          console.error(`❌ Error loading data for ${selectedDisease}:`, error)
+          setError(`Error al cargar datos de ${selectedDisease}`)
+        } finally {
+          setIsLoading(false) // Siempre quitar el estado de loading
         }
       }
       
@@ -183,12 +252,7 @@ export default function HeatMapPage() {
     console.log('Google Maps API disponible:', !!window.google.maps)
 
     try {
-      // Usar datos estáticos inicialmente para no bloquear la inicialización
-      let consultationsData = selectedDiseaseData.consultations
-      
-      console.log('Datos iniciales para el mapa:', consultationsData.length, 'registros')
-      
-      // Crear el mapa centrado en Santa Cruz, Bolivia
+      // Crear el mapa centrado en Santa Cruz, Bolivia (sin datos iniciales)
       const googleMap = new window.google.maps.Map(mapRef.current, {
         zoom: 13,
         center: { lat: -17.783327, lng: -63.182140 },
@@ -285,20 +349,9 @@ export default function HeatMapPage() {
       })
 
       // Convertir datos de la API a formato de Google Maps
-      const casos = consultationsData.map((consulta: ApiConsultation) => ({
-        lat: consulta.patient_latitude || consulta.latitude,
-        lng: consulta.patient_longitude || consulta.longitude,
-        weight: consulta.is_contagious ? 3 : 1
-      }))
-
-      const heatmapData = casos.map((caso: any) => ({
-        location: new window.google.maps.LatLng(caso.lat, caso.lng),
-        weight: caso.weight
-      }))
-
-      // Crear el mapa de calor
+      // Crear el mapa de calor sin datos iniciales
       const heatmapLayer = new window.google.maps.visualization.HeatmapLayer({
-        data: heatmapData,
+        data: [], // Inicializar sin datos
         map: googleMap,
         radius: 50,
         gradient: [
@@ -329,12 +382,12 @@ export default function HeatMapPage() {
       try {
         console.log('Cargando datos de la API en segundo plano...')
         const apiData = await fetchDiseaseData(selectedDisease)
-        if (apiData && apiData.length > 0 && apiData !== selectedDiseaseData.consultations) {
+        if (apiData && apiData.length > 0) {
           console.log('Actualizando mapa con datos de la API')
           updateHeatmapWithApiData(heatmapLayer, apiData)
         }
       } catch (apiError) {
-        console.warn('No se pudieron cargar datos de la API, manteniendo datos estáticos:', apiError)
+        console.warn('No se pudieron cargar datos de la API:', apiError)
       }
       
     } catch (err) {
@@ -353,43 +406,11 @@ export default function HeatMapPage() {
 
   // Función para manejar el cambio de enfermedad
   const handleDiseaseChange = (diseaseKey: string) => {
-    console.log('Cambiando enfermedad a:', diseaseKey)
+    console.log('🔄 Cambiando enfermedad a:', diseaseKey)
     setSelectedDisease(diseaseKey)
-    setSelectedDiseaseData(diseasesData[diseaseKey])
-    // El useEffect se encargará de cargar los nuevos datos
-  }
-
-  // Función para actualizar los datos del heatmap
-  const updateHeatmapData = async (diseaseKey: string) => {
-    try {
-      // Obtener datos actualizados de la API
-      const consultationsData = await fetchDiseaseData(diseaseKey)
-      
-      const casos = consultationsData.map((consulta: ApiConsultation) => ({
-        location: new window.google.maps.LatLng(
-          consulta.patient_latitude || consulta.latitude, 
-          consulta.patient_longitude || consulta.longitude
-        ),
-        weight: consulta.is_contagious ? 3 : 1
-      }))
-
-      // Actualizar los datos del heatmap
-      heatmap.setData(casos)
-      
-      // Forzar redibujado del mapa
-      if (map) {
-        window.google.maps.event.trigger(map, 'resize')
-      }
-    } catch (error) {
-      console.error('Error updating heatmap data:', error)
-      // Fallback a datos estáticos si falla la API
-      const diseaseData = diseasesData[diseaseKey]
-      const casos = diseaseData.consultations.map(consulta => ({
-        location: new window.google.maps.LatLng(consulta.patient_latitude, consulta.patient_longitude),
-        weight: consulta.is_contagious ? 3 : 1
-      }))
-      heatmap.setData(casos)
-    }
+    setIsLoading(true) // Activar estado de carga
+    setError(null) // Limpiar errores previos
+    // El useEffect se encargará de cargar los nuevos datos de la API
   }
 
   // Función auxiliar para actualizar el heatmap con datos de la API
@@ -410,14 +431,11 @@ export default function HeatMapPage() {
     }
   }
 
-  // Calcular estadísticas dinámicamente basadas en la enfermedad seleccionada
-  const dataToUse = apiData.length > 0 ? apiData : selectedDiseaseData.consultations
-  const totalCasos = dataToUse.length
-  const casosContagiosos = dataToUse.filter(consulta => consulta.is_contagious).length
-  const hospitalesUnicos = apiData.length > 0 
-    ? new Set(dataToUse.map((consulta: any) => consulta.hospital_id || consulta.hospital?.id)).size
-    : new Set(selectedDiseaseData.consultations.map(consulta => consulta.hospital.id)).size
-  const pesoTotal = dataToUse.reduce((sum, consulta) => sum + (consulta.is_contagious ? 3 : 1), 0)
+  // Calcular estadísticas dinámicamente basadas en los datos de la API
+  const totalCasos = apiData.length
+  const casosContagiosos = apiData.filter(consulta => consulta.is_contagious).length
+  const hospitalesUnicos = new Set(apiData.map((consulta: any) => consulta.hospital_id || consulta.hospital?.id)).size
+  const pesoTotal = apiData.reduce((sum, consulta) => sum + (consulta.is_contagious ? 3 : 1), 0)
 
   // Si no hay API key, mostrar el componente fallback
   if (!hasApiKey) {
@@ -509,25 +527,28 @@ export default function HeatMapPage() {
           
           <div className="text-right">
             <p className="text-xs text-gray-400">Enfermedad seleccionada</p>
-            <p className="text-sm font-medium text-white">{selectedDiseaseData.name}</p>
-            <p className="text-xs text-gray-500">{selectedDiseaseData.season}</p>
+            <p className="text-sm font-medium text-white">{selectedDisease}</p>
+            {isLoading ? (
+              <p className="text-xs text-blue-400 flex items-center gap-1">
+                <div className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                Cargando datos...
+              </p>
+            ) : (
+              <p className="text-xs text-gray-500">{totalCasos} casos registrados</p>
+            )}
           </div>
         </div>
         
         <div className="mt-3 pt-3 border-t border-gray-700">
           <p className="text-xs text-gray-400 leading-relaxed">
-            {selectedDiseaseData.description}
+            Datos obtenidos en tiempo real de la API de historial de enfermedades.
           </p>
           <div className="flex items-center gap-4 mt-2">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-              selectedDiseaseData.isContagious 
-                ? 'bg-red-900/50 text-red-300 border border-red-800' 
-                : 'bg-green-900/50 text-green-300 border border-green-800'
-            }`}>
-              {selectedDiseaseData.isContagious ? 'Contagiosa' : 'No Contagiosa'}
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900/50 text-blue-300 border border-blue-800">
+              Datos de API
             </span>
             <span className="text-xs text-gray-500">
-              {selectedDiseaseData.consultations.length} casos registrados
+              {totalCasos} casos registrados
             </span>
           </div>
         </div>
@@ -583,7 +604,7 @@ export default function HeatMapPage() {
         <div className="p-4 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white flex items-center gap-2">
             <MapPin className="h-5 w-5 text-red-400" />
-            Mapa de Distribución - {selectedDiseaseData.name}
+            Mapa de Distribución - {selectedDisease}
           </h2>
           <p className="text-sm text-gray-400 mt-1">
             Visualización de casos por intensidad de color - Santa Cruz, Bolivia
