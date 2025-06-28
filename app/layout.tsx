@@ -4,6 +4,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { BusinessProfileHeader } from "@/components/business-profile-header"
+import { AuthProvider } from "@/contexts/AuthContext"
+import { SimpleAuthProvider } from "@/contexts/SimpleAuthContext"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -39,10 +41,12 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <BusinessProfileHeader />
-          {children}
-        </ThemeProvider>
+        <SimpleAuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+            <BusinessProfileHeader />
+            {children}
+          </ThemeProvider>
+        </SimpleAuthProvider>
       </body>
     </html>
   )

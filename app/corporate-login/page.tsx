@@ -6,15 +6,35 @@ import { motion } from "framer-motion"
 import { Lock, Users, Eye, EyeOff, Mail, ArrowRight, Sparkles } from "lucide-react"
 import { CodeRain } from "@/components/code-rain"
 import Link from "next/link"
+import { useAuth } from "@/contexts/AuthContext"
+import { useSimpleAuth } from "@/contexts/SimpleAuthContext"
+import { useRouter } from "next/navigation"
 
 export default function CorporateLogin() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     companyCode: "",
   })
+
+  const { login, isAuthenticated } = useSimpleAuth()
+  const router = useRouter()
+
+  // Debug del estado de autenticación
+  useEffect(() => {
+    console.log('🔍 Auth state changed:', { isAuthenticated })
+  }, [isAuthenticated])
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔄 User is authenticated, redirecting to dashboard')
+      router.push('/dashboard')
+    }
+  }, [isAuthenticated, router])
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -24,10 +44,32 @@ export default function CorporateLogin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    console.log("Login attempt:", formData)
-    setIsLoading(false)
-    window.location.href = "/dashboard"
+    setError("")
+
+    console.log('🚀 Starting login process with data:', {
+      email: formData.email,
+      hasPassword: !!formData.password,
+      companyCode: formData.companyCode
+    })
+
+    try {
+      const success = await login(formData.email, formData.password, formData.companyCode)
+      
+      console.log('🔑 Login result:', success)
+      
+      if (success) {
+        console.log('✅ Login successful, redirecting to dashboard')
+        router.push('/dashboard')
+      } else {
+        console.log('❌ Login failed')
+        setError("Credenciales inválidas. Por favor verifica tu email y contraseña.")
+      }
+    } catch (err) {
+      console.error('💥 Login exception:', err)
+      setError("Error al iniciar sesión. Por favor intenta nuevamente.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +81,22 @@ export default function CorporateLogin() {
 
   const handleGoogleLogin = () => {
     console.log("Google login")
-    window.location.href = "/dashboard"
+    // Aquí puedes implementar la lógica de Google OAuth más tarde
+    router.push("/dashboard")
+  }
+
+  // Función de test para simular login exitoso
+  const handleTestLogin = () => {
+    console.log("🧪 Test login - simulating successful login")
+    const mockUser = {
+      id: '1',
+      email: 'test@example.com',
+      name: 'Usuario de Prueba',
+      company: 'Empresa Test'
+    }
+    
+    localStorage.setItem('user_data', JSON.stringify(mockUser))
+    router.push('/dashboard')
   }
 
   return (
@@ -87,6 +144,13 @@ export default function CorporateLogin() {
             className="bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 shadow-2xl"
           >
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                  <p className="text-red-400 text-sm text-center">{error}</p>
+                </div>
+              )}
+              
               {/* Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium mb-3 text-gray-300">
@@ -231,6 +295,15 @@ export default function CorporateLogin() {
                   />
                 </svg>
                 <span className="font-medium text-gray-700 group-hover:text-gray-900">Continue with Google</span>
+              </button>
+
+              {/* Test Login Button - Solo para debugging */}
+              <button
+                type="button"
+                onClick={handleTestLogin}
+                className="w-full mt-4 flex items-center justify-center px-6 py-4 border border-yellow-500 rounded-2xl bg-yellow-500/10 hover:bg-yellow-500/20 transition-all duration-200"
+              >
+                <span className="font-medium text-yellow-400">🧪 Test Login (Debug)</span>
               </button>
             </form>
 

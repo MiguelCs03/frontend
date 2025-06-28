@@ -19,6 +19,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { usePathname, useRouter } from "next/navigation"
+import { ProtectedRoute } from "@/components/protected-route"
+import { SimpleProtectedRoute } from "@/components/simple-protected-route"
+import { useAuth } from "@/contexts/AuthContext"
+import { useSimpleAuth } from "@/contexts/SimpleAuthContext"
 
 export default function DashboardLayout({
   children,
@@ -27,17 +31,15 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { user, logout } = useSimpleAuth()
   
-  const [user] = useState({
+  // Fallback user data if not fully loaded
+  const displayUser = user || {
     name: "",
-    company: "",
     email: "",
+    company: "",
     avatar: "/placeholder.svg?height=40&width=40",
-    plan: "Enterprise",
-    projects: 3,
-    totalSpent: 45000,
-    nextMeeting: "Tomorrow at 2:00 PM",
-  })
+  }
 
   const navigationItems = [
     { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard" },
@@ -56,7 +58,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
+    <SimpleProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white">
       {/* Header */}
       <header className="border-b border-gray-800 bg-black/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -80,14 +83,22 @@ export default function DashboardLayout({
               </Button>
               <div className="flex items-center space-x-3">
                 <img
-                  src={user.avatar || "/placeholder.svg"}
-                  alt={user.name || "User"}
+                  src={displayUser.avatar || "/placeholder.svg"}
+                  alt={displayUser.name || "User"}
                   className="w-8 h-8 rounded-full"
                 />
                 <div className="text-sm">
-                  <div className="font-medium">{user.name || "Sign Up"}</div>
-                  <div className="text-gray-400 text-xs">{user.company || "Complete Profile"}</div>
+                  <div className="font-medium">{displayUser.name || "Sign Up"}</div>
+                  <div className="text-gray-400 text-xs">{displayUser.company || "Complete Profile"}</div>
                 </div>
+                <Button 
+                  onClick={logout}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
+                >
+                  Logout
+                </Button>
               </div>
             </div>
           </div>
@@ -130,6 +141,7 @@ export default function DashboardLayout({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </SimpleProtectedRoute>
   )
 }
