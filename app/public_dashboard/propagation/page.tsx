@@ -116,6 +116,11 @@ export default function PropagationAnalysisPage() {
   const [hospitals, setHospitals] = useState<responseHospital[]>([])
   const [hospitalMarkers, setHospitalMarkers] = useState<any[]>([])
   const [recommendedHospitals, setRecommendedHospitals] = useState<responseHospital[]>([])
+  
+  // Estados para geolocalización del usuario
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
 
   // Verificar si hay API key disponible
   const hasApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && 
@@ -350,7 +355,7 @@ export default function PropagationAnalysisPage() {
     
     // Generar recomendaciones de hospitales seguros
     if (hospitals.length > 0) {
-      const recommended = recommendSafeHospitals(data, hospitals)
+      const recommended = recommendSafeHospitals(data, hospitals, userLocation || undefined)
       setRecommendedHospitals(recommended)
     }
   }
@@ -481,11 +486,12 @@ export default function PropagationAnalysisPage() {
                 </p>
                 ${isRecommended && recommendedData ? `
                   <p style="margin: 2px 0; font-size: 12px; color: #059669;">
-                    🛡️ <strong>Distancia mín. a zona de riesgo:</strong> ${recommendedData.minDistanceToRisk.toFixed(1)} km
                   </p>
-                  <p style="margin: 2px 0; font-size: 12px; color: #059669;">
-                    ⭐ <strong>Puntuación de seguridad:</strong> ${recommendedData.safetyScore.toFixed(1)}
-                  </p>
+                  ${recommendedData.distanceToUser ? `
+                    <p style="margin: 2px 0; font-size: 12px; color: #3B82F6;">
+                      📍 <strong>Distancia desde tu ubicación:</strong> ${recommendedData.distanceToUser.toFixed(1)} km
+                    </p>
+                  ` : ''}
                 ` : ''}
               </div>
               ${hospital.hospital.direccion ? `<p style="margin: 4px 0;"><strong>📍 Dirección:</strong> ${hospital.hospital.direccion}</p>` : ''}
@@ -527,7 +533,7 @@ export default function PropagationAnalysisPage() {
   }
 
   // Función para recomendar hospitales seguros (alejados de zonas de alto riesgo)
-  const recommendSafeHospitals = (propagationData: PropagationData, hospitalsList: responseHospital[]) => {
+  const recommendSafeHospitals = (propagationData: PropagationData, hospitalsList: responseHospital[], userLoc?: {lat: number, lng: number}) => {
     if (!propagationData.success || !hospitalsList.length) {
       console.log('⚠️ No hay datos suficientes para recomendar hospitales')
       return []
@@ -546,10 +552,9 @@ export default function PropagationAnalysisPage() {
 
     console.log(`🚨 Zonas de alto riesgo encontradas: ${highRiskDistricts.length}`)
 
-    // Calcular puntuación de seguridad para cada hospital
+    // Calcular información de seguridad para cada hospital
     const hospitalSafety = hospitalsList.map(hospital => {
       let minDistanceToRisk = Infinity
-      let totalRiskScore = 0
       
       highRiskDistricts.forEach(riskDistrict => {
         const distance = calculateDistance(
@@ -560,43 +565,175 @@ export default function PropagationAnalysisPage() {
         )
         
         minDistanceToRisk = Math.min(minDistanceToRisk, distance)
-        
-        // Puntuación de riesgo basada en distancia y severidad
-        const riskMultiplier = riskDistrict.riesgo_expansion.toUpperCase() === 'CRÍTICO' ? 2 : 1
-        const proximityRisk = Math.max(0, (10 - distance) / 10) * riskMultiplier // Riesgo disminuye con distancia
-        totalRiskScore += proximityRisk
       })
 
-      // Puntuación de seguridad (mayor es mejor)
-      const safetyScore = minDistanceToRisk - (totalRiskScore * 2)
+      // Calcular distancia al usuario si está disponible
+      let distanceToUser = null
+      if (userLoc) {
+        distanceToUser = calculateDistance(
+          userLoc.lat,
+          userLoc.lng,
+          hospital.hospital.latitud,
+          hospital.hospital.longitud
+        )
+      }
       
       return {
         ...hospital,
         minDistanceToRisk,
-        totalRiskScore,
-        safetyScore,
-        isRecommended: safetyScore > 3 && minDistanceToRisk > 2 // Más de 2km de zonas de riesgo
+        distanceToUser,
+        isRecommended: minDistanceToRisk > 2 // Más de 2km de zonas de riesgo
       }
     })
 
-    // Ordenar por puntuación de seguridad (mejores primero)
-    const recommendedList = hospitalSafety
-      .filter(h => h.isRecommended)
-      .sort((a, b) => b.safetyScore - a.safetyScore)
+    // Ordenar hospitales recomendados
+    let recommendedList = hospitalSafety.filter(h => h.isRecommended)
+    
+    if (userLoc) {
+      // Si hay ubicación del usuario, ordenar por distancia al usuario (más cercanos primero)
+      recommendedList = recommendedList.sort((a, b) => (a.distanceToUser || Infinity) - (b.distanceToUser || Infinity))
+    } else {
+      // Si no hay ubicación del usuario, ordenar por distancia a zonas de riesgo (más alejados primero)
+      recommendedList = recommendedList.sort((a, b) => b.minDistanceToRisk - a.minDistanceToRisk)
+    }
+    
+    const finalList = recommendedList
       .slice(0, 5) // Top 5 hospitales más seguros
       .map(h => ({
         hospital: h.hospital,
         total_pacientes: h.total_pacientes,
         minDistanceToRisk: h.minDistanceToRisk,
-        safetyScore: h.safetyScore
+        distanceToUser: h.distanceToUser
       }))
 
-    console.log(`✅ ${recommendedList.length} hospitales seguros recomendados`)
-    console.log('🏥 Hospitales recomendados:', recommendedList.map(h => 
-      `${h.hospital.nombre} (Distancia mín: ${h.minDistanceToRisk.toFixed(1)}km, Seguridad: ${h.safetyScore.toFixed(1)})`
+    console.log(`✅ ${finalList.length} hospitales seguros recomendados`)
+    console.log('🏥 Hospitales recomendados:', finalList.map(h => 
+      `${h.hospital.nombre} (${userLoc ? `Distancia: ${h.distanceToUser?.toFixed(1)}km` : `Distancia a riesgo: ${h.minDistanceToRisk.toFixed(1)}km`})`
     ))
 
-    return recommendedList
+    return finalList
+  }
+
+  // Función para obtener la ubicación del usuario
+  const getUserLocation = () => {
+    setIsLocating(true)
+    setLocationError(null)
+    
+    if (!navigator.geolocation) {
+      setLocationError('La geolocalización no está soportada en este navegador')
+      setIsLocating(false)
+      return
+    }
+
+    console.log('📍 Solicitando ubicación del usuario...')
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        }
+        console.log('✅ Ubicación del usuario obtenida:', location)
+        setUserLocation(location)
+        setIsLocating(false)
+        
+        // Actualizar el centro del mapa a la ubicación del usuario
+        if (map) {
+          map.setCenter(location)
+          map.setZoom(12)
+          
+          // Agregar marcador del usuario
+          addUserLocationMarker(location)
+        }
+        
+        // Recalcular recomendaciones con distancia al usuario
+        if (propagationData && propagationData.success && hospitals.length > 0) {
+          const recommended = recommendSafeHospitals(propagationData, hospitals, location)
+          setRecommendedHospitals(recommended)
+        }
+      },
+      (error) => {
+        console.error('❌ Error al obtener ubicación:', error)
+        let errorMessage = 'Error al obtener la ubicación'
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Acceso a la ubicación denegado por el usuario'
+            break
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Información de ubicación no disponible'
+            break
+          case error.TIMEOUT:
+            errorMessage = 'Tiempo de espera agotado al obtener la ubicación'
+            break
+        }
+        
+        setLocationError(errorMessage)
+        setIsLocating(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutos
+      }
+    )
+  }
+
+  // Función para agregar marcador de ubicación del usuario
+  const addUserLocationMarker = (location: {lat: number, lng: number}) => {
+    if (!map) return
+    
+    // Remover marcador anterior del usuario si existe
+    const existingUserMarker = (window as any).userLocationMarker
+    if (existingUserMarker) {
+      existingUserMarker.setMap(null)
+    }
+    
+    // Crear nuevo marcador del usuario
+    const userMarker = new window.google.maps.Marker({
+      position: location,
+      map: map,
+      title: 'Tu ubicación',
+      icon: {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="8" fill="#3B82F6" stroke="#ffffff" stroke-width="3"/>
+            <circle cx="12" cy="12" r="3" fill="#ffffff"/>
+            <circle cx="12" cy="12" r="12" fill="none" stroke="#3B82F6" stroke-width="2" stroke-dasharray="3,3" opacity="0.5"/>
+          </svg>
+        `),
+        scaledSize: new window.google.maps.Size(32, 32),
+        anchor: new window.google.maps.Point(16, 16)
+      },
+      animation: window.google.maps.Animation.DROP
+    })
+
+    // Info window para la ubicación del usuario
+    const userInfoWindow = new window.google.maps.InfoWindow({
+      content: `
+        <div style="color: #1f2937; padding: 12px; max-width: 200px;">
+          <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #3B82F6;">
+            📍 Tu Ubicación
+          </h3>
+          <p style="margin: 4px 0; font-size: 12px; color: #6B7280;">
+            <strong>📊 Coordenadas:</strong><br>
+            ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}
+          </p>
+          <p style="margin: 4px 0; font-size: 12px; color: #059669;">
+            ✅ Desde aquí calcularemos las distancias a los hospitales
+          </p>
+        </div>
+      `
+    })
+
+    userMarker.addListener('click', () => {
+      userInfoWindow.open(map, userMarker)
+    })
+    
+    // Guardar referencia global para poder eliminarlo después
+    ;(window as any).userLocationMarker = userMarker
+    
+    console.log('✅ Marcador de usuario agregado al mapa')
   }
 
   // Cargar Google Maps
@@ -656,10 +793,10 @@ export default function PropagationAnalysisPage() {
   // Generar recomendaciones cuando cambien los datos de propagación o hospitales
   useEffect(() => {
     if (propagationData && propagationData.success && hospitals.length > 0) {
-      const recommended = recommendSafeHospitals(propagationData, hospitals)
+      const recommended = recommendSafeHospitals(propagationData, hospitals, userLocation || undefined)
       setRecommendedHospitals(recommended)
     }
-  }, [propagationData, hospitals])
+  }, [propagationData, hospitals, userLocation])
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -744,6 +881,47 @@ export default function PropagationAnalysisPage() {
                 🏥 Cargar Hospitales (Debug)
               </button>
 
+              {/* Botón de Geolocalización */}
+              <button
+                onClick={getUserLocation}
+                disabled={isLocating}
+                className={`w-full mt-2 ${userLocation ? 'bg-blue-600 hover:bg-blue-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isLocating ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Ubicando...
+                  </div>
+                ) : userLocation ? (
+                  '📍 Actualizar Mi Ubicación'
+                ) : (
+                  '📍 Obtener Mi Ubicación'
+                )}
+              </button>
+
+              {/* Mostrar ubicación del usuario */}
+              {userLocation && (
+                <div className="mt-3 p-3 bg-blue-900 border border-blue-700 rounded-md">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
+                    <p className="text-sm text-blue-300">
+                      <strong>Tu ubicación:</strong><br />
+                      {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Error de geolocalización */}
+              {locationError && (
+                <div className="mt-3 p-3 bg-red-900 border border-red-700 rounded-md">
+                  <div className="flex">
+                    <AlertTriangle className="h-4 w-4 text-red-400 mr-2 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-300">{locationError}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Error Display */}
               {error && (
                 <div className="mt-4 p-3 bg-red-900 border border-red-700 rounded-md">
@@ -785,7 +963,8 @@ export default function PropagationAnalysisPage() {
                     🛡️ Hospitales Recomendados (Zonas Seguras)
                   </h3>
                   <p className="text-green-200 text-sm mb-3">
-                    Hospitales alejados de zonas de alto riesgo de propagación:
+                    Hospitales alejados de zonas de alto riesgo de propagación
+                    {userLocation ? ' y ordenados por distancia a tu ubicación:' : ':'}
                   </p>
                   <div className="space-y-2">
                     {recommendedHospitals.slice(0, 3).map((hospital, index) => (
@@ -803,12 +982,11 @@ export default function PropagationAnalysisPage() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-green-200 text-xs">
-                              🛡️ {hospital.minDistanceToRisk.toFixed(1)} km
-                            </p>
-                            <p className="text-green-200 text-xs">
-                              ⭐ {hospital.safetyScore.toFixed(1)}
-                            </p>
+                            {hospital.distanceToUser && (
+                              <p className="text-blue-200 text-xs">
+                                📍 {hospital.distanceToUser.toFixed(1)} km
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -819,6 +997,13 @@ export default function PropagationAnalysisPage() {
                       </p>
                     )}
                   </div>
+                  {!userLocation && (
+                    <div className="mt-3 p-2 bg-blue-900 bg-opacity-50 rounded border border-blue-600">
+                      <p className="text-blue-200 text-xs">
+                        💡 Tip: Activa tu ubicación para ver la distancia exacta a cada hospital
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -894,6 +1079,14 @@ export default function PropagationAnalysisPage() {
                       </div>
                       <span>Otros Hospitales</span>
                     </div>
+                    {userLocation && (
+                      <div className="flex items-center col-span-2">
+                        <div className="w-4 h-4 rounded-full bg-blue-500 mr-2 flex items-center justify-center border-2 border-white">
+                          <span className="text-white text-xs">📍</span>
+                        </div>
+                        <span>Tu Ubicación</span>
+                      </div>
+                    )}
                   </div>
                   <p className="text-xs text-gray-400 mt-2">
                     • El tamaño de los círculos representa la cantidad de casos/pacientes
@@ -903,6 +1096,8 @@ export default function PropagationAnalysisPage() {
                     • Los hospitales recomendados (🛡️) están alejados de zonas de alto riesgo
                     <br />
                     • Los hospitales recomendados tienen un borde dorado y son más grandes
+                    <br />
+                    {userLocation ? '• Los hospitales se ordenan por distancia a tu ubicación' : '• Activa tu ubicación para ver distancias personalizadas'}
                     <br />
                     • Haga clic en los marcadores para ver detalles completos
                   </p>
