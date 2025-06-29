@@ -10,8 +10,8 @@ import { SimpleAuthProvider } from "@/contexts/SimpleAuthContext"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Weltivation - Transform Your Business",
-  description: "Revolutionary technology solutions that drive growth and innovation",
+  title: "Monitoreo epidemiologico",
+  description: "Sistema de monitoreo epidiemiologico para la salud pública",
     generator: 'v0.dev'
 }
 
