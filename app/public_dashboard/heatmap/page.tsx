@@ -53,6 +53,7 @@ export default function HeatMapPage() {
   const [showIAModal, setShowIAModal] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<string>('español') // Estado para el idioma
   const [isIALoading, setIsIALoading] = useState(false) // Estado para loading de IA
+  const [iaResponse, setIaResponse] = useState<string>('') // Estado para la respuesta de IA
 
   // Idiomas disponibles
   const availableLanguages = [
@@ -531,6 +532,7 @@ export default function HeatMapPage() {
   // Función para probar la IA desde el botón - MODIFICADA
   const handleTestIA = async () => {
     setIsIALoading(true);
+    setIaResponse(''); // Limpiar respuesta anterior
     console.log('🚀 Consultando información médica con Gemini AI...');
     
     // Crear el prompt dinámico
@@ -546,8 +548,10 @@ export default function HeatMapPage() {
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log(respuesta);
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      setIaResponse(respuesta); // Guardar la respuesta para mostrar en el modal
     } else {
       console.log('💥 Error: No se pudo obtener información médica');
+      setIaResponse('Error: No se pudo obtener información médica de Gemini AI');
     }
     
     setIsIALoading(false);
@@ -576,12 +580,6 @@ export default function HeatMapPage() {
     }
   }
 
-  // Función para mostrar información en consola
-  const handleShowInfo = () => {
-    console.log('📋 Información seleccionada:');
-    console.log('🦠 Enfermedad:', selectedDisease);
-    console.log('🌍 Idioma:', selectedLanguage);
-  }
 
   return (
     <div className="space-y-6">
@@ -938,14 +936,6 @@ export default function HeatMapPage() {
 
               {/* Botones */}
               <div className="flex flex-col gap-3">
-                {/* Botón para mostrar info en consola */}
-                <button
-                  onClick={handleShowInfo}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
-                >
-                  <span className="text-lg">📋</span>
-                  Mostrar en Consola
-                </button>
 
                 {/* Botón Test IA - ACTUALIZADO con loading */}
                 <button
@@ -966,6 +956,16 @@ export default function HeatMapPage() {
                   )}
                 </button>
               </div>
+
+              {/* Mostrar respuesta de IA */}
+              {iaResponse && (
+                <div className="p-4 bg-gray-900/50 rounded-lg border border-purple-500/30 max-h-60 overflow-y-auto">
+                  <p className="text-sm font-medium text-purple-300 mb-2">🤖 Respuesta de Gemini AI:</p>
+                  <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                    {iaResponse}
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-600">
                 <p className="text-xs text-gray-400 mb-2">💡 Instrucciones:</p>
