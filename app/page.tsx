@@ -1,157 +1,134 @@
 "use client"
 
 import Link from "next/link"
-import { CodeRain } from "@/components/code-rain"
-import { NavBar } from "@/components/nav-bar"
-import { Footer } from "@/components/footer"
-import { PoweredByBadge } from "@/components/powered-by-badge"
-import { ExpertiseSection } from "@/components/expertise-section"
-import { SpinningEarth } from "@/components/spinning-earth"
-import { TypingHero } from "@/components/typing-hero"
 import { motion } from "framer-motion"
-import { Calendar } from "lucide-react"
-import { ProfileDropdown } from "@/components/profile-dropdown"
-import { ServicesViewportSection } from "@/components/services-viewport-section"
+import { User, Shield, Globe, ArrowRight } from "lucide-react"
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Background layers */}
-      <div className="fixed inset-0 z-0">
-        {/* Spinning Earth */}
-        <div className="opacity-10">
-          <SpinningEarth />
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+      {/* Header */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
+            Sistema de Salud Pública
+          </h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Plataforma integral de gestión médica y análisis epidemiológico
+          </p>
         </div>
-        {/* Code rain */}
-        <div className="opacity-20 dark:opacity-20 light:opacity-5">
-          <CodeRain />
-        </div>
-      </div>
 
-      {/* Content container */}
-      <div className="relative z-10">
-        <NavBar />
-        <ProfileDropdown />
-
-        {/* Hero section with better contrast */}
-        <section className="flex flex-col items-center justify-center min-h-[90vh] px-4 sm:px-6">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <div className="mb-8">
-              <PoweredByBadge />
-            </div>
-
-            {/* Enhanced hero with better contrast */}
-            <div className="relative">
-              {/* Background for better contrast in light mode */}
-              <div className="absolute inset-0 bg-background/80 dark:bg-transparent rounded-2xl blur-3xl"></div>
-              <div className="relative z-10">
-                <TypingHero />
-              </div>
-            </div>
-
-            <div className="h-px w-24 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto my-8"></div>
-
-            {/* Enhanced description with better contrast */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-background/60 dark:bg-transparent rounded-xl blur-2xl"></div>
-              <p className="relative z-10 text-muted-foreground max-w-xl mx-auto font-medium">
-                Transforming ideas into powerful digital solutions that drive growth and innovation for forward-thinking
-                businesses.
-              </p>
-            </div>
-
-            <div className="pt-8">
-              <Link
-                href="/consultation"
-                className="px-6 py-3 rounded-md bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-400 hover:to-green-500 transition-all duration-300 hover:shadow-[0_0_15px_rgba(52,211,153,0.3)] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background font-medium"
-              >
-                Start Your Project
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Expertise section */}
-        <ExpertiseSection />
-
-        {/* Services viewport section */}
-        <ServicesViewportSection />
-
-        {/* Enhanced Contact section */}
-        <section id="contact" className="py-20 px-4 sm:px-6 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-12">
-            <div className="space-y-6">
-              <motion.h2
-                className="text-4xl sm:text-5xl font-bold"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-              >
-                <span className="text-foreground">Ready to </span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-green-600">
-                  innovate?
-                </span>
-              </motion.h2>
-              <motion.div
-                className="h-px w-24 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto"
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              />
-              <motion.p
-                className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-              >
-                Let's discuss how we can transform your vision into reality with cutting-edge technology and strategic
-                innovation.
-              </motion.p>
-            </div>
-
+        {/* Access Cards */}
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            {/* Corporate Login Card */}
             <motion.div
-              className="pt-8"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <div className="flex flex-col items-center space-y-6">
-                <Link
-                  href="/consultation"
-                  className="group relative px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg font-medium text-base hover:from-emerald-400 hover:to-green-500 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_20px_rgba(52,211,153,0.3)]"
-                >
-                  <span className="flex items-center space-x-2">
-                    <Calendar className="w-5 h-5" />
-                    <span>Schedule Free Consultation</span>
-                  </span>
-                </Link>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center max-w-2xl">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                      <span className="text-primary font-bold text-sm">1</span>
+              <Link href="/corporate-login">
+                <div className="group relative bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 hover:border-blue-400/50 transition-all duration-300 cursor-pointer h-full hover:bg-white/15">
+                  <div className="flex flex-col items-center text-center space-y-6">
+                    <div className="bg-blue-500/20 p-6 rounded-2xl border border-blue-400/30 group-hover:scale-110 transition-transform duration-300">
+                      <User className="h-12 w-12 text-blue-400" />
                     </div>
-                    <p className="text-sm text-muted-foreground">No commitment required</p>
-                  </div>
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                      <span className="text-primary font-bold text-sm">2</span>
+                    <div>
+                      <h3 className="text-3xl font-bold text-white mb-3">Login Corporativo</h3>
+                      <p className="text-gray-300 text-lg">Acceso para profesionales médicos</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">30-minute strategy session</p>
-                  </div>
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                      <span className="text-primary font-bold text-sm">3</span>
+                    <div className="space-y-3 text-gray-300">
+                      <div className="flex items-center justify-center gap-3">
+                        <Shield className="h-5 w-5 text-blue-400" />
+                        <span>Acceso seguro</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-3">
+                        <User className="h-5 w-5 text-blue-400" />
+                        <span>Panel profesional</span>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">Expert guidance</p>
+                    <div className="flex items-center gap-3 text-blue-400 group-hover:gap-4 transition-all duration-200 mt-auto pt-4">
+                      <span className="font-semibold text-lg">Acceder</span>
+                      <ArrowRight className="h-6 w-6" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             </motion.div>
-          </div>
-        </section>
 
-        <Footer />
+            {/* Dashboard Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <Link href="/dashboard">
+                <div className="group relative bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 hover:border-emerald-400/50 transition-all duration-300 cursor-pointer h-full hover:bg-white/15">
+                  <div className="flex flex-col items-center text-center space-y-6">
+                    <div className="bg-emerald-500/20 p-6 rounded-2xl border border-emerald-400/30 group-hover:scale-110 transition-transform duration-300">
+                      <Shield className="h-12 w-12 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-bold text-white mb-3">Dashboard</h3>
+                      <p className="text-gray-300 text-lg">Panel de administración médica</p>
+                    </div>
+                    <div className="space-y-3 text-gray-300">
+                      <div className="flex items-center justify-center gap-3">
+                        <Shield className="h-5 w-5 text-emerald-400" />
+                        <span>Gestión de pacientes</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-3">
+                        <User className="h-5 w-5 text-emerald-400" />
+                        <span>Historial médico</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-emerald-400 group-hover:gap-4 transition-all duration-200 mt-auto pt-4">
+                      <span className="font-semibold text-lg">Ir al Dashboard</span>
+                      <ArrowRight className="h-6 w-6" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+
+            {/* Public Dashboard Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <Link href="/public_dashboard">
+                <div className="group relative bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 hover:border-orange-400/50 transition-all duration-300 cursor-pointer h-full hover:bg-white/15">
+                  <div className="flex flex-col items-center text-center space-y-6">
+                    <div className="bg-orange-500/20 p-6 rounded-2xl border border-orange-400/30 group-hover:scale-110 transition-transform duration-300">
+                      <Globe className="h-12 w-12 text-orange-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-bold text-white mb-3">Dashboard Público</h3>
+                      <p className="text-gray-300 text-lg">Información epidemiológica pública</p>
+                    </div>
+                    <div className="space-y-3 text-gray-300">
+                      <div className="flex items-center justify-center gap-3">
+                        <Globe className="h-5 w-5 text-orange-400" />
+                        <span>Mapas de calor</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-3">
+                        <User className="h-5 w-5 text-orange-400" />
+                        <span>Consulta de pacientes</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-orange-400 group-hover:gap-4 transition-all duration-200 mt-auto pt-4">
+                      <span className="font-semibold text-lg">Ver información pública</span>
+                      <ArrowRight className="h-6 w-6" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+
+          </div>
+        </div>
       </div>
     </main>
   )
