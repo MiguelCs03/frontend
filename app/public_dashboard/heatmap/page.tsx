@@ -946,7 +946,7 @@ export default function HeatMapPage() {
                 <div className="bg-purple-500/20 p-2 rounded-lg border border-purple-500/30">
                   <span className="text-lg">🤖</span>
                 </div>
-                <h3 className="text-xl font-semibold text-white">Test de IA - Gemini</h3>
+                <h3 className="text-xl font-semibold text-white">Preguntale a la IA</h3>
               </div>
               <button
                 onClick={handleCloseIAModal}
@@ -1019,16 +1019,6 @@ export default function HeatMapPage() {
                   </div>
                 </div>
               )}
-
-              <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-600">
-                <p className="text-xs text-gray-400 mb-2">💡 Instrucciones:</p>
-                <ul className="text-xs text-gray-400 space-y-1">
-                  <li>1. Selecciona el idioma deseado</li>
-                  <li>2. Haz clic en "Mostrar en Consola"</li>
-                  <li>3. Abre la consola del navegador (F12)</li>
-                  <li>4. Verifica los datos seleccionados</li>
-                </ul>
-              </div>
             </div>
 
             {/* Footer del Modal - Fijo */}
