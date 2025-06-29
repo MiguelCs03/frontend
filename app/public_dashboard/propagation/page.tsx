@@ -69,6 +69,12 @@ interface Hospital {
   tipo?: string
   latitud: number
   longitud: number
+  total_pacientes?: number // Nuevo campo para el conteo de pacientes
+}
+
+interface responseHospital {
+    hospital: Hospital
+    total_pacientes: number
 }
 
 // Coordenadas aproximadas de distritos de Santa Cruz
@@ -107,7 +113,7 @@ export default function PropagationAnalysisPage() {
   const [error, setError] = useState<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   // Estados para hospitales
-  const [hospitals, setHospitals] = useState<Hospital[]>([])
+  const [hospitals, setHospitals] = useState<responseHospital[]>([])
   const [hospitalMarkers, setHospitalMarkers] = useState<any[]>([])
 
   // Verificar si hay API key disponible
@@ -346,7 +352,7 @@ export default function PropagationAnalysisPage() {
   const fetchHospitals = async () => {
     try {
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
-      const url = `${apiBaseUrl}/api/v1/hospitales/`
+      const url = `${apiBaseUrl}/api/v1/hospitales/with-patients-count`
       
       console.log('🏥 Cargando hospitales desde:', url)
       
@@ -364,10 +370,10 @@ export default function PropagationAnalysisPage() {
       }
 
       const data = await response.json()
-      console.log('🏥 Hospitales recibidos:', data)
+      console.log('🏥 Hospitales recibidos:', data.data)
       
       // Manejar la estructura específica de respuesta: { success: true, data: [...] }
-      let hospitalsList: Hospital[] = []
+      let hospitalsList: responseHospital[] = []
       
       if (data && data.success && Array.isArray(data.data)) {
         hospitalsList = data.data
@@ -384,7 +390,7 @@ export default function PropagationAnalysisPage() {
       }
 
       console.log(`✅ ${hospitalsList.length} hospitales cargados`)
-      console.log('🏥 Hospitales parseados:', hospitalsList.map(h => `${h.nombre} (${h.latitud}, ${h.longitud})`))
+      console.log('🏥 Hospitales parseados:', hospitalsList.map(h => `${h.hospital.nombre} (${h.hospital.latitud}, ${h.hospital.longitud}) - ${h.total_pacientes || 0} pacientes`))
       setHospitals(hospitalsList)
       
       // Si el mapa ya está cargado, agregar los marcadores
@@ -403,7 +409,7 @@ export default function PropagationAnalysisPage() {
   }
 
   // Función para agregar marcadores de hospitales al mapa
-  const addHospitalMarkers = (hospitalsList: Hospital[]) => {
+  const addHospitalMarkers = (hospitalsList: responseHospital[]) => {
     console.log('🏥 addHospitalMarkers llamado con:', hospitalsList.length, 'hospitales')
     console.log('🏥 Mapa disponible:', !!map)
     
@@ -419,23 +425,27 @@ export default function PropagationAnalysisPage() {
 
     console.log('🏥 Procesando hospitales...')
     hospitalsList.forEach((hospital, index) => {
-      console.log(`🏥 Procesando hospital ${index + 1}:`, hospital.nombre, hospital.latitud, hospital.longitud)
-      if (hospital.latitud && hospital.longitud) {
-        console.log(`🏥 Agregando hospital: ${hospital.nombre}`)
+      console.log(`🏥 Procesando hospital ${index + 1}:`, hospital.hospital.nombre, hospital.hospital.latitud, hospital.hospital.longitud)
+      if (hospital.hospital.latitud && hospital.hospital.longitud) {
+        console.log(`🏥 Agregando hospital: ${hospital.hospital.nombre} con ${hospital.total_pacientes || 0} pacientes`)
+        
+        // Calcular el tamaño del ícono basado en el número de pacientes
+        const pacientes = hospital.total_pacientes || 0
+        const iconSize = Math.max(20, Math.min(40, 20 + (pacientes / 10))) // Entre 20 y 40 px
         
         const marker = new window.google.maps.Marker({
-          position: { lat: hospital.latitud, lng: hospital.longitud },
+          position: { lat: hospital.hospital.latitud, lng: hospital.hospital.longitud },
           map: map,
-          title: hospital.nombre,
+          title: `${hospital.hospital.nombre} - ${pacientes} pacientes`,
           icon: {
             url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" fill="#10B981" stroke="#ffffff" stroke-width="2"/>
                 <path d="M12 6v12M6 12h12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
               </svg>
             `),
-            scaledSize: new window.google.maps.Size(24, 24),
-            anchor: new window.google.maps.Point(12, 12)
+            scaledSize: new window.google.maps.Size(iconSize, iconSize),
+            anchor: new window.google.maps.Point(iconSize/2, iconSize/2)
           }
         })
 
@@ -444,13 +454,18 @@ export default function PropagationAnalysisPage() {
           content: `
             <div style="color: #1f2937; padding: 12px; max-width: 280px;">
               <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #10B981;">
-                🏥 ${hospital.nombre}
+                🏥 ${hospital.hospital.nombre}
               </h3>
-              ${hospital.direccion ? `<p style="margin: 4px 0;"><strong>📍 Dirección:</strong> ${hospital.direccion}</p>` : ''}
-              ${hospital.telefono ? `<p style="margin: 4px 0;"><strong>📞 Teléfono:</strong> ${hospital.telefono}</p>` : ''}
-              ${hospital.tipo ? `<p style="margin: 4px 0;"><strong>🏥 Tipo:</strong> ${hospital.tipo}</p>` : ''}
+              <div style="background: #f0fdf4; padding: 8px; border-radius: 6px; border: 1px solid #10B981; margin-bottom: 8px;">
+                <p style="margin: 2px 0; font-size: 14px; font-weight: bold; color: #059669;">
+                  👥 <strong>Total Pacientes:</strong> ${hospital.total_pacientes || 0}
+                </p>
+              </div>
+              ${hospital.hospital.direccion ? `<p style="margin: 4px 0;"><strong>📍 Dirección:</strong> ${hospital.hospital.direccion}</p>` : ''}
+              ${hospital.hospital.telefono ? `<p style="margin: 4px 0;"><strong>📞 Teléfono:</strong> ${hospital.hospital.telefono}</p>` : ''}
+              ${hospital.hospital.tipo ? `<p style="margin: 4px 0;"><strong>🏥 Tipo:</strong> ${hospital.hospital.tipo}</p>` : ''}
               <p style="margin: 4px 0; font-size: 12px; color: #6B7280;">
-                <strong>📊 Coordenadas:</strong> ${hospital.latitud.toFixed(6)}, ${hospital.longitud.toFixed(6)}
+                <strong>📊 Coordenadas:</strong> ${hospital.hospital.latitud.toFixed(6)}, ${hospital.hospital.longitud.toFixed(6)}
               </p>
             </div>
           `
@@ -462,7 +477,7 @@ export default function PropagationAnalysisPage() {
 
         newHospitalMarkers.push(marker)
       } else {
-        console.warn(`⚠️ Hospital sin coordenadas: ${hospital.nombre}`)
+        console.warn(`⚠️ Hospital sin coordenadas: ${hospital.hospital.nombre}`)
       }
     })
 
@@ -718,6 +733,12 @@ export default function PropagationAnalysisPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Marcadores en mapa:</span>
                     <span className="font-semibold text-white">{hospitalMarkers.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Total pacientes:</span>
+                    <span className="font-semibold text-blue-400">
+                      {hospitals.reduce((total, h) => total + (h.total_pacientes || 0), 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">Mapa inicializado:</span>
