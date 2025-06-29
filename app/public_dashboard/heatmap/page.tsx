@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { MapPin, Activity, Eye, EyeOff, ChevronDown } from 'lucide-react'
 import HeatMapFallback from './components/heatmap-fallback'
 import GoogleMapsDiagnostic from './components/google-maps-diagnostic'
@@ -40,6 +41,7 @@ declare global {
 }
 
 export default function HeatMapPage() {
+  const router = useRouter()
   const mapRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<any>(null)
   const [heatmap, setHeatmap] = useState<any>(null)
@@ -642,20 +644,11 @@ export default function HeatMapPage() {
           <div className="flex items-center gap-4">
             {/* Botón Analizar Propagación */}
             <button
-              onClick={handleAnalyzePropagation}
-              disabled={isPropagationLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+              onClick={() => router.push('/public_dashboard/propagation')}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
             >
-              {isPropagationLoading ? (
-                <>
-                  <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin"></div>
-                  Analizando...
-                </>
-              ) : (
-                <>
-                  📊 Analizar Propagación
-                </>
-              )}
+              <Activity className="h-4 w-4" />
+              📊 Analizar Propagación
             </button>
             
             {/* Botón Test IA - Ahora abre el modal */}
