@@ -50,7 +50,16 @@ export default function HeatMapPage() {
   const [error, setError] = useState<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false) // Controla si el mapa está cargado
   const [shouldLoadMap, setShouldLoadMap] = useState(false) // Controla cuándo cargar el mapa
-  const [showIAModal, setShowIAModal] = useState(false) // Estado para el modal
+  const [showIAModal, setShowIAModal] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('español') // Estado para el idioma
+
+  // Idiomas disponibles
+  const availableLanguages = [
+    { value: 'español', label: 'Español' },
+    { value: 'guarani', label: 'Guaraní' },
+    { value: 'quechua', label: 'Quechua' },
+    { value: 'aymara', label: 'Aymara' }
+  ]
 
   // Verificar si hay API key disponible
   const hasApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && 
@@ -551,6 +560,13 @@ export default function HeatMapPage() {
     }
   }
 
+  // Función para mostrar información en consola
+  const handleShowInfo = () => {
+    console.log('📋 Información seleccionada:');
+    console.log('🦠 Enfermedad:', selectedDisease);
+    console.log('🌍 Idioma:', selectedLanguage);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -876,28 +892,62 @@ export default function HeatMapPage() {
             </div>
 
             {/* Contenido del Modal */}
-            <div className="p-6">
-              <p className="text-gray-300 mb-6">
-                Prueba la conexión con Gemini AI. Los resultados aparecerán en la consola del navegador.
-              </p>
+            <div className="p-6 space-y-6">
+              {/* Selector de Idioma */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  🌍 Seleccionar Idioma
+                </label>
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                >
+                  {availableLanguages.map((language) => (
+                    <option key={language.value} value={language.value}>
+                      {language.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              {/* Botón con la funcionalidad Test IA */}
-              <div className="flex justify-center">
+              {/* Información Actual */}
+              <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-600">
+                <p className="text-sm font-medium text-gray-300 mb-2">📋 Selección Actual:</p>
+                <div className="space-y-1">
+                  <p className="text-xs text-gray-400">🦠 Enfermedad: <span className="text-white">{selectedDisease}</span></p>
+                  <p className="text-xs text-gray-400">🌍 Idioma: <span className="text-white">{selectedLanguage}</span></p>
+                </div>
+              </div>
+
+              {/* Botones */}
+              <div className="flex flex-col gap-3">
+                {/* Botón para mostrar info en consola */}
+                <button
+                  onClick={handleShowInfo}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+                >
+                  <span className="text-lg">📋</span>
+                  Mostrar en Consola
+                </button>
+
+                {/* Botón Test IA */}
                 <button
                   onClick={handleTestIA}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
                 >
                   <span className="text-lg">🚀</span>
                   Ejecutar Test IA
                 </button>
               </div>
 
-              <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-600">
+              <div className="p-4 bg-gray-900/50 rounded-lg border border-gray-600">
                 <p className="text-xs text-gray-400 mb-2">💡 Instrucciones:</p>
                 <ul className="text-xs text-gray-400 space-y-1">
-                  <li>1. Haz clic en "Ejecutar Test IA"</li>
-                  <li>2. Abre la consola del navegador (F12)</li>
-                  <li>3. Verifica los logs de la conexión</li>
+                  <li>1. Selecciona el idioma deseado</li>
+                  <li>2. Haz clic en "Mostrar en Consola"</li>
+                  <li>3. Abre la consola del navegador (F12)</li>
+                  <li>4. Verifica los datos seleccionados</li>
                 </ul>
               </div>
             </div>
