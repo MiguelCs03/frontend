@@ -115,6 +115,7 @@ export default function PropagationAnalysisPage() {
   // Estados para hospitales
   const [hospitals, setHospitals] = useState<responseHospital[]>([])
   const [hospitalMarkers, setHospitalMarkers] = useState<any[]>([])
+  const [recommendedHospitals, setRecommendedHospitals] = useState<responseHospital[]>([])
 
   // Verificar si hay API key disponible
   const hasApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && 
@@ -346,6 +347,12 @@ export default function PropagationAnalysisPage() {
     setMarkers(newMarkers)
     
     console.log(`✅ Mapa actualizado: ${newMarkers.length} elementos visuales`)
+    
+    // Generar recomendaciones de hospitales seguros
+    if (hospitals.length > 0) {
+      const recommended = recommendSafeHospitals(data, hospitals)
+      setRecommendedHospitals(recommended)
+    }
   }
 
   // Función para cargar hospitales desde la API
@@ -429,19 +436,30 @@ export default function PropagationAnalysisPage() {
       if (hospital.hospital.latitud && hospital.hospital.longitud) {
         console.log(`🏥 Agregando hospital: ${hospital.hospital.nombre} con ${hospital.total_pacientes || 0} pacientes`)
         
+        // Verificar si este hospital está en la lista de recomendados
+        const isRecommended = recommendedHospitals.some(rec => rec.hospital.id === hospital.hospital.id)
+        const recommendedData = recommendedHospitals.find(rec => rec.hospital.id === hospital.hospital.id)
+        
         // Calcular el tamaño del ícono basado en el número de pacientes
         const pacientes = hospital.total_pacientes || 0
-        const iconSize = Math.max(20, Math.min(40, 20 + (pacientes / 10))) // Entre 20 y 40 px
+        const baseSize = Math.max(20, Math.min(40, 20 + (pacientes / 10))) // Entre 20 y 40 px
+        const iconSize = isRecommended ? baseSize + 8 : baseSize // Hospitales recomendados son más grandes
+        
+        // Color del ícono: verde brillante para recomendados, verde normal para otros
+        const iconColor = isRecommended ? '#22C55E' : '#10B981'
+        const strokeColor = isRecommended ? '#FBBF24' : '#ffffff'
+        const strokeWidth = isRecommended ? 3 : 2
         
         const marker = new window.google.maps.Marker({
           position: { lat: hospital.hospital.latitud, lng: hospital.hospital.longitud },
           map: map,
-          title: `${hospital.hospital.nombre} - ${pacientes} pacientes`,
+          title: `${hospital.hospital.nombre} - ${pacientes} pacientes${isRecommended ? ' (RECOMENDADO)' : ''}`,
           icon: {
             url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
               <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" fill="#10B981" stroke="#ffffff" stroke-width="2"/>
-                <path d="M12 6v12M6 12h12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="12" r="10" fill="${iconColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>
+                <path d="M12 6v12M6 12h12" stroke="${strokeColor}" stroke-width="2" stroke-linecap="round"/>
+                ${isRecommended ? '<circle cx="12" cy="12" r="12" fill="none" stroke="#FBBF24" stroke-width="1" stroke-dasharray="2,2"/>' : ''}
               </svg>
             `),
             scaledSize: new window.google.maps.Size(iconSize, iconSize),
@@ -452,14 +470,23 @@ export default function PropagationAnalysisPage() {
         // Info window para cada hospital
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
-            <div style="color: #1f2937; padding: 12px; max-width: 280px;">
-              <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #10B981;">
+            <div style="color: #1f2937; padding: 12px; max-width: 320px;">
+              <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: ${iconColor};">
                 🏥 ${hospital.hospital.nombre}
+                ${isRecommended ? '<span style="background: #22C55E; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 8px;">RECOMENDADO</span>' : ''}
               </h3>
-              <div style="background: #f0fdf4; padding: 8px; border-radius: 6px; border: 1px solid #10B981; margin-bottom: 8px;">
+              <div style="background: ${isRecommended ? '#ECFDF5' : '#f0fdf4'}; padding: 8px; border-radius: 6px; border: 1px solid ${iconColor}; margin-bottom: 8px;">
                 <p style="margin: 2px 0; font-size: 14px; font-weight: bold; color: #059669;">
                   👥 <strong>Total Pacientes:</strong> ${hospital.total_pacientes || 0}
                 </p>
+                ${isRecommended && recommendedData ? `
+                  <p style="margin: 2px 0; font-size: 12px; color: #059669;">
+                    🛡️ <strong>Distancia mín. a zona de riesgo:</strong> ${recommendedData.minDistanceToRisk.toFixed(1)} km
+                  </p>
+                  <p style="margin: 2px 0; font-size: 12px; color: #059669;">
+                    ⭐ <strong>Puntuación de seguridad:</strong> ${recommendedData.safetyScore.toFixed(1)}
+                  </p>
+                ` : ''}
               </div>
               ${hospital.hospital.direccion ? `<p style="margin: 4px 0;"><strong>📍 Dirección:</strong> ${hospital.hospital.direccion}</p>` : ''}
               ${hospital.hospital.telefono ? `<p style="margin: 4px 0;"><strong>📞 Teléfono:</strong> ${hospital.hospital.telefono}</p>` : ''}
@@ -467,6 +494,7 @@ export default function PropagationAnalysisPage() {
               <p style="margin: 4px 0; font-size: 12px; color: #6B7280;">
                 <strong>📊 Coordenadas:</strong> ${hospital.hospital.latitud.toFixed(6)}, ${hospital.hospital.longitud.toFixed(6)}
               </p>
+              ${isRecommended ? '<p style="margin: 4px 0; font-size: 12px; color: #059669; font-weight: bold;">✅ Este hospital está alejado de zonas de alto riesgo</p>' : ''}
             </div>
           `
         })
@@ -483,6 +511,92 @@ export default function PropagationAnalysisPage() {
 
     setHospitalMarkers(newHospitalMarkers)
     console.log(`✅ ${newHospitalMarkers.length} marcadores de hospitales agregados`)
+  }
+
+  // Función para calcular distancia entre dos puntos geográficos (fórmula de Haversine)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371 // Radio de la Tierra en kilómetros
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R * c // Distancia en kilómetros
+  }
+
+  // Función para recomendar hospitales seguros (alejados de zonas de alto riesgo)
+  const recommendSafeHospitals = (propagationData: PropagationData, hospitalsList: responseHospital[]) => {
+    if (!propagationData.success || !hospitalsList.length) {
+      console.log('⚠️ No hay datos suficientes para recomendar hospitales')
+      return []
+    }
+
+    console.log('🏥 Analizando hospitales seguros...')
+    
+    // Obtener zonas de alto riesgo (crítico y alto)
+    const highRiskDistricts = propagationData.data.distritos_afectados
+      .filter(distrito => ['CRÍTICO', 'ALTO'].includes(distrito.riesgo_expansion.toUpperCase()))
+      .map(distrito => ({
+        ...distrito,
+        coords: districtCoordinates[distrito.distrito]
+      }))
+      .filter(distrito => distrito.coords) // Solo distritos con coordenadas conocidas
+
+    console.log(`🚨 Zonas de alto riesgo encontradas: ${highRiskDistricts.length}`)
+
+    // Calcular puntuación de seguridad para cada hospital
+    const hospitalSafety = hospitalsList.map(hospital => {
+      let minDistanceToRisk = Infinity
+      let totalRiskScore = 0
+      
+      highRiskDistricts.forEach(riskDistrict => {
+        const distance = calculateDistance(
+          hospital.hospital.latitud,
+          hospital.hospital.longitud, 
+          riskDistrict.coords.lat,
+          riskDistrict.coords.lng
+        )
+        
+        minDistanceToRisk = Math.min(minDistanceToRisk, distance)
+        
+        // Puntuación de riesgo basada en distancia y severidad
+        const riskMultiplier = riskDistrict.riesgo_expansion.toUpperCase() === 'CRÍTICO' ? 2 : 1
+        const proximityRisk = Math.max(0, (10 - distance) / 10) * riskMultiplier // Riesgo disminuye con distancia
+        totalRiskScore += proximityRisk
+      })
+
+      // Puntuación de seguridad (mayor es mejor)
+      const safetyScore = minDistanceToRisk - (totalRiskScore * 2)
+      
+      return {
+        ...hospital,
+        minDistanceToRisk,
+        totalRiskScore,
+        safetyScore,
+        isRecommended: safetyScore > 3 && minDistanceToRisk > 2 // Más de 2km de zonas de riesgo
+      }
+    })
+
+    // Ordenar por puntuación de seguridad (mejores primero)
+    const recommendedList = hospitalSafety
+      .filter(h => h.isRecommended)
+      .sort((a, b) => b.safetyScore - a.safetyScore)
+      .slice(0, 5) // Top 5 hospitales más seguros
+      .map(h => ({
+        hospital: h.hospital,
+        total_pacientes: h.total_pacientes,
+        minDistanceToRisk: h.minDistanceToRisk,
+        safetyScore: h.safetyScore
+      }))
+
+    console.log(`✅ ${recommendedList.length} hospitales seguros recomendados`)
+    console.log('🏥 Hospitales recomendados:', recommendedList.map(h => 
+      `${h.hospital.nombre} (Distancia mín: ${h.minDistanceToRisk.toFixed(1)}km, Seguridad: ${h.safetyScore.toFixed(1)})`
+    ))
+
+    return recommendedList
   }
 
   // Cargar Google Maps
@@ -537,7 +651,15 @@ export default function PropagationAnalysisPage() {
     if (map && hospitals.length > 0) {
       addHospitalMarkers(hospitals)
     }
-  }, [map, hospitals])
+  }, [map, hospitals, recommendedHospitals]) // Agregar recommendedHospitals a las dependencias
+
+  // Generar recomendaciones cuando cambien los datos de propagación o hospitales
+  useEffect(() => {
+    if (propagationData && propagationData.success && hospitals.length > 0) {
+      const recommended = recommendSafeHospitals(propagationData, hospitals)
+      setRecommendedHospitals(recommended)
+    }
+  }, [propagationData, hospitals])
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -655,6 +777,63 @@ export default function PropagationAnalysisPage() {
                   </div>
                 </div>
               )}
+
+              {/* Recomendaciones de Hospitales Seguros */}
+              {recommendedHospitals.length > 0 && (
+                <div className="mt-6 bg-gradient-to-r from-green-900 to-green-800 rounded-lg p-4 border border-green-600">
+                  <h3 className="font-bold text-lg mb-3 flex items-center text-white">
+                    🛡️ Hospitales Recomendados (Zonas Seguras)
+                  </h3>
+                  <p className="text-green-200 text-sm mb-3">
+                    Hospitales alejados de zonas de alto riesgo de propagación:
+                  </p>
+                  <div className="space-y-2">
+                    {recommendedHospitals.slice(0, 3).map((hospital, index) => (
+                      <div key={hospital.hospital.id} className="bg-green-800 bg-opacity-50 rounded-lg p-3 border border-green-600">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-white text-sm flex items-center">
+                              <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">
+                                {index + 1}
+                              </span>
+                              {hospital.hospital.nombre}
+                            </h4>
+                            <p className="text-green-200 text-xs mt-1">
+                              👥 {hospital.total_pacientes || 0} pacientes
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-green-200 text-xs">
+                              🛡️ {hospital.minDistanceToRisk.toFixed(1)} km
+                            </p>
+                            <p className="text-green-200 text-xs">
+                              ⭐ {hospital.safetyScore.toFixed(1)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {recommendedHospitals.length > 3 && (
+                      <p className="text-green-200 text-xs text-center mt-2">
+                        +{recommendedHospitals.length - 3} hospitales más recomendados (ver en mapa)
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Mensaje cuando no hay recomendaciones */}
+              {propagationData && propagationData.success && hospitals.length > 0 && recommendedHospitals.length === 0 && (
+                <div className="mt-6 bg-yellow-900 bg-opacity-50 rounded-lg p-4 border border-yellow-600">
+                  <h3 className="font-bold text-lg mb-2 flex items-center text-yellow-300">
+                    ⚠️ Sin Hospitales Seguros Identificados
+                  </h3>
+                  <p className="text-yellow-200 text-sm">
+                    No se encontraron hospitales lo suficientemente alejados de las zonas de alto riesgo. 
+                    Todos los hospitales disponibles están cerca de áreas de propagación activa.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -704,20 +883,28 @@ export default function PropagationAnalysisPage() {
                       <span>Riesgo Bajo</span>
                     </div>
                     <div className="flex items-center">
+                      <div className="w-4 h-4 rounded-full bg-green-500 mr-2 flex items-center justify-center border-2 border-yellow-400">
+                        <span className="text-white text-xs">🏥</span>
+                      </div>
+                      <span>Hospitales Recomendados</span>
+                    </div>
+                    <div className="flex items-center">
                       <div className="w-4 h-4 rounded-full bg-green-500 mr-2 flex items-center justify-center">
                         <span className="text-white text-xs">🏥</span>
                       </div>
-                      <span>Hospitales</span>
+                      <span>Otros Hospitales</span>
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-2">
-                    • El tamaño de los círculos representa la cantidad de casos
+                    • El tamaño de los círculos representa la cantidad de casos/pacientes
                     <br />
                     • Las manchas de calor muestran la intensidad de propagación
                     <br />
-                    • Los hospitales (🏥) muestran centros de atención médica
+                    • Los hospitales recomendados (🛡️) están alejados de zonas de alto riesgo
                     <br />
-                    • Haga clic en los marcadores para ver detalles
+                    • Los hospitales recomendados tienen un borde dorado y son más grandes
+                    <br />
+                    • Haga clic en los marcadores para ver detalles completos
                   </p>
                 </div>
               )}
@@ -733,6 +920,10 @@ export default function PropagationAnalysisPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Marcadores en mapa:</span>
                     <span className="font-semibold text-white">{hospitalMarkers.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Hospitales recomendados:</span>
+                    <span className="font-semibold text-green-400">{recommendedHospitals.length}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">Total pacientes:</span>
