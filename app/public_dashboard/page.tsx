@@ -1,6 +1,6 @@
 "use client"
 
-import { User, Search, Activity, ArrowRight } from 'lucide-react'
+import { User, Search, Activity, ArrowRight, MapPin, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function PublicDashboardPage() {
@@ -53,54 +53,51 @@ export default function PublicDashboardPage() {
               </div>
             </Link>
 
-            {/* Panel de Información */}
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-xl p-8 border border-gray-700">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="bg-blue-500/20 p-3 rounded-xl border border-blue-500/30">
-                  <Activity className="h-8 w-8 text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold text-white">Información del Sistema</h2>
-                  <p className="text-gray-400">Estado y estadísticas</p>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Estado del Sistema</span>
-                    <span className="bg-green-500/20 text-green-400 text-sm font-medium px-2.5 py-0.5 rounded-full border border-green-500/30">
-                      Activo
-                    </span>
+            {/* Acceso a Mapas de Calor */}
+            <Link href="/public_dashboard/heatmap">
+              <div className="bg-gray-800/50 backdrop-blur-xl rounded-2xl shadow-xl p-8 border border-gray-700 hover:border-red-500/50 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="bg-red-500/20 p-3 rounded-xl border border-red-500/30">
+                    <MapPin className="h-8 w-8 text-red-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">Mapas de Calor</h2>
+                    <p className="text-gray-400">Visualización epidemiológica</p>
                   </div>
                 </div>
                 
-                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Pacientes Registrados</span>
-                    <span className="text-white font-semibold">2</span>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-gray-300">
+                    <BarChart3 className="h-5 w-5 text-orange-400" />
+                    <span>Distribución de casos por enfermedad</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-300">
+                    <MapPin className="h-5 w-5 text-red-400" />
+                    <span>Mapas interactivos de Santa Cruz</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-gray-300">
+                    <Activity className="h-5 w-5 text-yellow-400" />
+                    <span>Análisis en tiempo real</span>
                   </div>
                 </div>
-                
-                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Última Actualización</span>
-                    <span className="text-gray-400 text-sm">Hoy</span>
-                  </div>
+
+                <div className="flex items-center gap-2 text-red-400 group-hover:gap-3 transition-all duration-200">
+                  <span className="font-medium">Ver mapas de calor</span>
+                  <ArrowRight className="h-5 w-5" />
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Información adicional */}
           <div className="mt-12 text-center">
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-blue-400 mb-2">
-                Sistema de Gestión de Pacientes
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-red-400 mb-2">
+                Sistema de Monitoreo Epidemiológico
               </h3>
               <p className="text-gray-300 text-sm">
-                Este sistema permite consultar información de pacientes registrados de forma segura. 
-                Ingrese el ID del paciente para acceder a su información personal y historial médico.
+                Visualiza la distribución geográfica de casos de enfermedades en Santa Cruz de la Sierra. 
+                Los mapas de calor muestran la intensidad y propagación de diferentes enfermedades en tiempo real.
               </p>
             </div>
           </div>
