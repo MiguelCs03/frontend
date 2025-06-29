@@ -52,6 +52,7 @@ export default function HeatMapPage() {
   const [shouldLoadMap, setShouldLoadMap] = useState(false) // Controla cuándo cargar el mapa
   const [showIAModal, setShowIAModal] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<string>('español') // Estado para el idioma
+  const [isIALoading, setIsIALoading] = useState(false) // Estado para loading de IA
 
   // Idiomas disponibles
   const availableLanguages = [
@@ -527,24 +528,39 @@ export default function HeatMapPage() {
     )
   }
 
-  // Función para probar la IA desde el botón
+  // Función para probar la IA desde el botón - MODIFICADA
   const handleTestIA = async () => {
-    console.log('🚀 Probando conexión con Gemini AI...');
-    const respuesta = await ia();
+    setIsIALoading(true);
+    console.log('🚀 Consultando información médica con Gemini AI...');
+    
+    // Crear el prompt dinámico
+    const prompt = `¿Qué es y cuáles son los síntomas de ${selectedDisease}? DÍMELO EN ${selectedLanguage.toUpperCase()}`;
+    
+    console.log('🤖 Prompt generado:', prompt);
+    console.log('🦠 Enfermedad consultada:', selectedDisease);
+    console.log('🌍 Idioma solicitado:', selectedLanguage);
+    
+    const respuesta = await ia(prompt);
     if (respuesta) {
-      console.log('🎉 ¡Conexión exitosa! Respuesta:', respuesta);
+      console.log('✅ RESPUESTA DE GEMINI AI:');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(respuesta);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     } else {
-      console.log('💥 Error en la conexión con Gemini AI');
+      console.log('💥 Error: No se pudo obtener información médica');
     }
+    
+    setIsIALoading(false);
   }
 
-  // Función ia completa
-  const ia = async () => {
+  // Función ia modificada para recibir prompt personalizado
+  const ia = async (customPrompt?: string) => {
     try {
       const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_API_KEY_IA ?? "");
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
-      const prompt = "Hola, ¿puedes responder con un mensaje simple para probar la conexión?";
+      // Usar prompt personalizado o el de prueba por defecto
+      const prompt = customPrompt || "Hola, ¿puedes responder con un mensaje simple para probar la conexión?";
       
       console.log('🤖 Enviando prompt a Gemini:', prompt);
       
@@ -552,7 +568,7 @@ export default function HeatMapPage() {
       const response = await result.response;
       const text = response.text();
       
-      console.log('✅ Respuesta de Gemini:', text);
+      console.log('✅ Respuesta recibida de Gemini');
       return text;
     } catch (error) {
       console.error('❌ Error con Gemini AI:', error);
@@ -931,13 +947,23 @@ export default function HeatMapPage() {
                   Mostrar en Consola
                 </button>
 
-                {/* Botón Test IA */}
+                {/* Botón Test IA - ACTUALIZADO con loading */}
                 <button
                   onClick={handleTestIA}
-                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+                  disabled={isIALoading}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all transform hover:scale-105 disabled:transform-none"
                 >
-                  <span className="text-lg">🚀</span>
-                  Ejecutar Test IA
+                  {isIALoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Consultando IA...
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-lg">🚀</span>
+                      Consultar Información Médica
+                    </>
+                  )}
                 </button>
               </div>
 
