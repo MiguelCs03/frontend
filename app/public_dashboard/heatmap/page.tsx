@@ -939,9 +939,9 @@ export default function HeatMapPage() {
       {/* Modal de Test IA */}
       {showIAModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 max-w-md w-full">
-            {/* Header del Modal */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+          <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 max-w-md w-full max-h-[90vh] flex flex-col">
+            {/* Header del Modal - Fijo */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-700 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="bg-purple-500/20 p-2 rounded-lg border border-purple-500/30">
                   <span className="text-lg">🤖</span>
@@ -958,8 +958,8 @@ export default function HeatMapPage() {
               </button>
             </div>
 
-            {/* Contenido del Modal */}
-            <div className="p-6 space-y-6">
+            {/* Contenido del Modal - Scrolleable */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
               {/* Selector de Idioma */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -1012,9 +1012,9 @@ export default function HeatMapPage() {
 
               {/* Mostrar respuesta de IA */}
               {iaResponse && (
-                <div className="p-4 bg-gray-900/50 rounded-lg border border-purple-500/30 max-h-60 overflow-y-auto">
+                <div className="p-4 bg-gray-900/50 rounded-lg border border-purple-500/30">
                   <p className="text-sm font-medium text-purple-300 mb-2">🤖 Respuesta de Gemini AI:</p>
-                  <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  <div className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
                     {iaResponse}
                   </div>
                 </div>
@@ -1031,8 +1031,8 @@ export default function HeatMapPage() {
               </div>
             </div>
 
-            {/* Footer del Modal */}
-            <div className="px-6 py-4 border-t border-gray-700 flex justify-end">
+            {/* Footer del Modal - Fijo */}
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end flex-shrink-0">
               <button
                 onClick={handleCloseIAModal}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
