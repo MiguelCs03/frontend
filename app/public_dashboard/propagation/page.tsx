@@ -60,6 +60,17 @@ interface PropagationData {
   }
 }
 
+// Tipos para datos de hospitales
+interface Hospital {
+  id: string
+  nombre: string
+  direccion?: string
+  telefono?: string
+  tipo?: string
+  latitud: number
+  longitud: number
+}
+
 // Coordenadas aproximadas de distritos de Santa Cruz
 const districtCoordinates: { [key: string]: { lat: number, lng: number } } = {
   'Norte': { lat: -17.750000, lng: -63.180000 },
@@ -95,6 +106,9 @@ export default function PropagationAnalysisPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
+  // Estados para hospitales
+  const [hospitals, setHospitals] = useState<Hospital[]>([])
+  const [hospitalMarkers, setHospitalMarkers] = useState<any[]>([])
 
   // Verificar si hay API key disponible
   const hasApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && 
@@ -192,6 +206,17 @@ export default function PropagationAnalysisPage() {
     console.log('✅ Mapa de propagación inicializado')
     setMap(googleMap)
     setIsMapLoaded(true)
+    
+    // Cargar hospitales cuando el mapa esté listo
+    console.log('🏥 Intentando cargar hospitales...')
+    console.log('🏥 Hospitales en estado:', hospitals.length)
+    if (hospitals.length > 0) {
+      console.log('🏥 Ya hay hospitales, agregando marcadores...')
+      addHospitalMarkers(hospitals)
+    } else {
+      console.log('🏥 No hay hospitales, llamando fetchHospitals...')
+      fetchHospitals()
+    }
   }
 
   // Función para actualizar el mapa con datos de propagación (con manchas de calor)
@@ -317,6 +342,134 @@ export default function PropagationAnalysisPage() {
     console.log(`✅ Mapa actualizado: ${newMarkers.length} elementos visuales`)
   }
 
+  // Función para cargar hospitales desde la API
+  const fetchHospitals = async () => {
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+      const url = `${apiBaseUrl}/api/v1/hospitales/`
+      
+      console.log('🏥 Cargando hospitales desde:', url)
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000) // 10 segundos
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      console.log('🏥 Hospitales recibidos:', data)
+      
+      // Manejar la estructura específica de respuesta: { success: true, data: [...] }
+      let hospitalsList: Hospital[] = []
+      
+      if (data && data.success && Array.isArray(data.data)) {
+        hospitalsList = data.data
+        console.log('✅ Estructura correcta encontrada en data.data')
+      } else if (Array.isArray(data)) {
+        hospitalsList = data
+        console.log('✅ Array directo encontrado')
+      } else if (data && typeof data === 'object') {
+        if (Array.isArray(data.hospitales)) {
+          hospitalsList = data.hospitales
+        } else if (Array.isArray(data.results)) {
+          hospitalsList = data.results
+        }
+      }
+
+      console.log(`✅ ${hospitalsList.length} hospitales cargados`)
+      console.log('🏥 Hospitales parseados:', hospitalsList.map(h => `${h.nombre} (${h.latitud}, ${h.longitud})`))
+      setHospitals(hospitalsList)
+      
+      // Si el mapa ya está cargado, agregar los marcadores
+      console.log('🏥 Verificando mapa para agregar marcadores...', { mapExists: !!map, hospitalsCount: hospitalsList.length })
+      if (map && hospitalsList.length > 0) {
+        console.log('🏥 Llamando addHospitalMarkers...')
+        addHospitalMarkers(hospitalsList)
+      } else {
+        console.log('🏥 No se pueden agregar marcadores:', { mapExists: !!map, hospitalsCount: hospitalsList.length })
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Error al cargar hospitales:', error)
+      // No mostrar error crítico por hospitales, solo log
+    }
+  }
+
+  // Función para agregar marcadores de hospitales al mapa
+  const addHospitalMarkers = (hospitalsList: Hospital[]) => {
+    console.log('🏥 addHospitalMarkers llamado con:', hospitalsList.length, 'hospitales')
+    console.log('🏥 Mapa disponible:', !!map)
+    
+    if (!map) {
+      console.warn('⚠️ Mapa no disponible para agregar hospitales')
+      return
+    }
+
+    console.log('🏥 Limpiando marcadores anteriores:', hospitalMarkers.length)
+    // Limpiar marcadores anteriores de hospitales
+    hospitalMarkers.forEach(marker => marker.setMap(null))
+    const newHospitalMarkers: any[] = []
+
+    console.log('🏥 Procesando hospitales...')
+    hospitalsList.forEach((hospital, index) => {
+      console.log(`🏥 Procesando hospital ${index + 1}:`, hospital.nombre, hospital.latitud, hospital.longitud)
+      if (hospital.latitud && hospital.longitud) {
+        console.log(`🏥 Agregando hospital: ${hospital.nombre}`)
+        
+        const marker = new window.google.maps.Marker({
+          position: { lat: hospital.latitud, lng: hospital.longitud },
+          map: map,
+          title: hospital.nombre,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#10B981" stroke="#ffffff" stroke-width="2"/>
+                <path d="M12 6v12M6 12h12" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(24, 24),
+            anchor: new window.google.maps.Point(12, 12)
+          }
+        })
+
+        // Info window para cada hospital
+        const infoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="color: #1f2937; padding: 12px; max-width: 280px;">
+              <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #10B981;">
+                🏥 ${hospital.nombre}
+              </h3>
+              ${hospital.direccion ? `<p style="margin: 4px 0;"><strong>📍 Dirección:</strong> ${hospital.direccion}</p>` : ''}
+              ${hospital.telefono ? `<p style="margin: 4px 0;"><strong>📞 Teléfono:</strong> ${hospital.telefono}</p>` : ''}
+              ${hospital.tipo ? `<p style="margin: 4px 0;"><strong>🏥 Tipo:</strong> ${hospital.tipo}</p>` : ''}
+              <p style="margin: 4px 0; font-size: 12px; color: #6B7280;">
+                <strong>📊 Coordenadas:</strong> ${hospital.latitud.toFixed(6)}, ${hospital.longitud.toFixed(6)}
+              </p>
+            </div>
+          `
+        })
+
+        marker.addListener('click', () => {
+          infoWindow.open(map, marker)
+        })
+
+        newHospitalMarkers.push(marker)
+      } else {
+        console.warn(`⚠️ Hospital sin coordenadas: ${hospital.nombre}`)
+      }
+    })
+
+    setHospitalMarkers(newHospitalMarkers)
+    console.log(`✅ ${newHospitalMarkers.length} marcadores de hospitales agregados`)
+  }
+
   // Cargar Google Maps
   useEffect(() => {
     if (!hasApiKey) {
@@ -356,6 +509,20 @@ export default function PropagationAnalysisPage() {
       }
     }
   }, [hasApiKey])
+
+  // Cargar hospitales cuando el mapa esté listo
+  useEffect(() => {
+    if (map && hospitals.length === 0) {
+      fetchHospitals()
+    }
+  }, [map])
+
+  // Agregar marcadores de hospitales cuando se carguen los datos
+  useEffect(() => {
+    if (map && hospitals.length > 0) {
+      addHospitalMarkers(hospitals)
+    }
+  }, [map, hospitals])
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -426,6 +593,18 @@ export default function PropagationAnalysisPage() {
                 ) : (
                   '📊 Analizar Propagación'
                 )}
+              </button>
+
+              {/* Botón de Debug para Hospitales */}
+              <button
+                onClick={() => {
+                  console.log('🏥 Carga manual de hospitales iniciada')
+                  console.log('🏥 Estado actual - Mapa:', !!map, 'Hospitales:', hospitals.length)
+                  fetchHospitals()
+                }}
+                className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
+              >
+                🏥 Cargar Hospitales (Debug)
               </button>
 
               {/* Error Display */}
@@ -509,16 +688,43 @@ export default function PropagationAnalysisPage() {
                       <div className="w-4 h-4 rounded-full bg-green-600 mr-2"></div>
                       <span>Riesgo Bajo</span>
                     </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded-full bg-green-500 mr-2 flex items-center justify-center">
+                        <span className="text-white text-xs">🏥</span>
+                      </div>
+                      <span>Hospitales</span>
+                    </div>
                   </div>
                   <p className="text-xs text-gray-400 mt-2">
                     • El tamaño de los círculos representa la cantidad de casos
                     <br />
                     • Las manchas de calor muestran la intensidad de propagación
                     <br />
+                    • Los hospitales (🏥) muestran centros de atención médica
+                    <br />
                     • Haga clic en los marcadores para ver detalles
                   </p>
                 </div>
               )}
+
+              {/* Info de Debug de Hospitales */}
+              <div className="mt-4 bg-gray-700 rounded-lg p-4 border border-gray-600">
+                <h4 className="font-semibold mb-2 text-white">🏥 Estado de Hospitales:</h4>
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Hospitales cargados:</span>
+                    <span className="font-semibold text-white">{hospitals.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Marcadores en mapa:</span>
+                    <span className="font-semibold text-white">{hospitalMarkers.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Mapa inicializado:</span>
+                    <span className="font-semibold text-white">{isMapLoaded ? 'Sí' : 'No'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
