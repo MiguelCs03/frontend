@@ -50,6 +50,7 @@ export default function HeatMapPage() {
   const [error, setError] = useState<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false) // Controla si el mapa está cargado
   const [shouldLoadMap, setShouldLoadMap] = useState(false) // Controla cuándo cargar el mapa
+  const [showIAModal, setShowIAModal] = useState(false) // Estado para el modal
 
   // Verificar si hay API key disponible
   const hasApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && 
@@ -455,6 +456,16 @@ export default function HeatMapPage() {
     setShouldLoadMap(true)
   }
 
+  // Función para abrir el modal
+  const handleOpenIAModal = () => {
+    setShowIAModal(true)
+  }
+
+  // Función para cerrar el modal
+  const handleCloseIAModal = () => {
+    setShowIAModal(false)
+  }
+
   // Función auxiliar para actualizar el heatmap con datos de la API
   const updateHeatmapWithApiData = (heatmapLayer: any, apiData: ApiConsultation[]) => {
     try {
@@ -557,9 +568,9 @@ export default function HeatMapPage() {
           
           {/* Controles */}
           <div className="flex items-center gap-4">
-            {/* Botón Test IA */}
+            {/* Botón Test IA - Ahora abre el modal */}
             <button
-              onClick={handleTestIA}
+              onClick={handleOpenIAModal}
               className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors"
             >
               🤖 Test IA
@@ -841,6 +852,68 @@ export default function HeatMapPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Test IA */}
+      {showIAModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 max-w-md w-full">
+            {/* Header del Modal */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="bg-purple-500/20 p-2 rounded-lg border border-purple-500/30">
+                  <span className="text-lg">🤖</span>
+                </div>
+                <h3 className="text-xl font-semibold text-white">Test de IA - Gemini</h3>
+              </div>
+              <button
+                onClick={handleCloseIAModal}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Contenido del Modal */}
+            <div className="p-6">
+              <p className="text-gray-300 mb-6">
+                Prueba la conexión con Gemini AI. Los resultados aparecerán en la consola del navegador.
+              </p>
+
+              {/* Botón con la funcionalidad Test IA */}
+              <div className="flex justify-center">
+                <button
+                  onClick={handleTestIA}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+                >
+                  <span className="text-lg">🚀</span>
+                  Ejecutar Test IA
+                </button>
+              </div>
+
+              <div className="mt-4 p-4 bg-gray-900/50 rounded-lg border border-gray-600">
+                <p className="text-xs text-gray-400 mb-2">💡 Instrucciones:</p>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  <li>1. Haz clic en "Ejecutar Test IA"</li>
+                  <li>2. Abre la consola del navegador (F12)</li>
+                  <li>3. Verifica los logs de la conexión</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer del Modal */}
+            <div className="px-6 py-4 border-t border-gray-700 flex justify-end">
+              <button
+                onClick={handleCloseIAModal}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
