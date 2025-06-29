@@ -878,7 +878,7 @@ export default function PropagationAnalysisPage() {
                 }}
                 className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
               >
-                🏥 Cargar Hospitales (Debug)
+                🏥 Cargar Hospitales
               </button>
 
               {/* Botón de Geolocalización */}
