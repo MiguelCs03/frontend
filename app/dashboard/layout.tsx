@@ -4,17 +4,9 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import {
   BarChart3,
-  Users,
-  Calendar,
-  Settings,
+  UserPlus,
   Bell,
   Search,
-  DollarSign,
-  CheckCircle,
-  Zap,
-  Briefcase,
-  UserPlus,
-  MapPin,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -43,14 +35,7 @@ export default function DashboardLayout({
 
   const navigationItems = [
     { id: "overview", label: "Overview", icon: BarChart3, href: "/dashboard" },
-    { id: "projects", label: "Projects", icon: Briefcase, href: "/dashboard/projects" },
     { id: "patients", label: "Patients", icon: UserPlus, href: "/dashboard/patients" },
-    { id: "heatmap", label: "Mapa de Calor", icon: MapPin, href: "/dashboard/heatmap" },
-    { id: "onboarding", label: "Onboarding", icon: CheckCircle, href: "/dashboard/onboarding" },
-    { id: "services", label: "Services", icon: Zap, href: "/dashboard/services" },
-    { id: "team", label: "Team", icon: Users, href: "/dashboard/team" },
-    { id: "billing", label: "Billing", icon: DollarSign, href: "/dashboard/billing" },
-    { id: "settings", label: "Settings", icon: Settings, href: "/dashboard/settings" },
   ]
 
   const handleNavigation = (href: string) => {
@@ -65,7 +50,9 @@ export default function DashboardLayout({
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <img src="/images/weltivation-logo.png" alt="Weltivation" className="w-48 h-12 object-contain" />
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent">
+                Sistema de Salud Pública
+              </h2>
               <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Dashboard</Badge>
             </div>
 
@@ -74,7 +61,7 @@ export default function DashboardLayout({
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="Search projects..."
+                  placeholder="Buscar pacientes..."
                   className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:border-emerald-500 focus:outline-none w-64"
                 />
               </div>
